@@ -1,0 +1,10 @@
+data/raw/
+data/processed/
+models/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+venv/
+.env
+*.pth
+*.tar.gz
