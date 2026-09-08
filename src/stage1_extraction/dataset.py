@@ -85,6 +85,13 @@ class SpaceNetDataset(Dataset):
         # Reverse-engineer the image filename from the mask filename
         img_filename = mask_path.name.replace("mask_", "RGB-PanSharpen_").replace(".png", ".tif")
         img_path = self.image_dir / img_filename
+        if not img_path.exists():
+            raise FileNotFoundError(
+                f"Dataset mismatch: mask {mask_path.name} has no paired image.\n"
+                f"  Expected: {img_path}\n"
+                "  The mask exists in masks/ but the matching image is missing from images/.\n"
+                "  Check that build_subset.py and build_masks.py completed without interruption."
+            )
 
         # 1. Load and normalize image using a FIXED dataset-wide scale
         with rasterio.open(img_path) as src:

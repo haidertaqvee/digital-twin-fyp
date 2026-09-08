@@ -16,38 +16,48 @@ TRAIN_FRAC = 0.7
 VAL_FRAC = 0.15
 # remaining 0.15 goes to test
 
-# ---- Step 1: find all image files and extract their tile number ----
-pattern = re.compile(r"RGB-PanSharpen_AOI_2_Vegas_img(\d+)\.tif")
 
-pairs = []
-for img_path in IMG_DIR.glob("*.tif"):
-    match = pattern.match(img_path.name)
-    if not match:
-        continue
-    tile_id = match.group(1)
-    label_path = LABEL_DIR / f"buildings_AOI_2_Vegas_img{tile_id}.geojson"
-    if label_path.exists():
-        pairs.append((tile_id, img_path, label_path))
+def main():
+    # ---- Step 1: find all image files and extract their tile number ----
+    pattern = re.compile(r"RGB-PanSharpen_AOI_2_Vegas_img(\d+)\.tif")
 
-print(f"Found {len(pairs)} valid image-label pairs")
+    pairs = []
+    for img_path in IMG_DIR.glob("*.tif"):
+        match = pattern.match(img_path.name)
+        if not match:
+            continue
+        tile_id = match.group(1)
+        label_path = LABEL_DIR / f"buildings_AOI_2_Vegas_img{tile_id}.geojson"
+        if label_path.exists():
+            pairs.append((tile_id, img_path, label_path))
 
-# ---- Step 2: randomly sample our subset (reproducible via seed) ----
-random.seed(SEED)
-random.shuffle(pairs)
-subset = pairs[:SUBSET_SIZE]
-print(f"Selected {len(subset)} tiles for our working subset")
+    print(f"Found {len(pairs)} valid image-label pairs")
 
-# ---- Step 3: split into train/val/test ----
-n_train = int(len(subset) * TRAIN_FRAC)
-n_val = int(len(subset) * VAL_FRAC)
+    # ---- Step 2: randomly sample our subset (reproducible via seed) ----
+    random.seed(SEED)
+    random.shuffle(pairs)
+    subset = pairs[:SUBSET_SIZE]
+    print(f"Selected {len(subset)} tiles for our working subset")
 
-train_set = subset[:n_train]
-val_set = subset[n_train:n_train + n_val]
-test_set = subset[n_train + n_val:]
+    # ---- Step 3: split into train/val/test ----
+    n_train = int(len(subset) * TRAIN_FRAC)
+    n_val = int(len(subset) * VAL_FRAC)
 
-print(f"Train: {len(train_set)} | Val: {len(val_set)} | Test: {len(test_set)}")
+    train_set = subset[:n_train]
+    val_set = subset[n_train:n_train + n_val]
+    test_set = subset[n_train + n_val:]
 
-# ---- Step 4: copy files into organized folders ----
+    print(f"Train: {len(train_set)} | Val: {len(val_set)} | Test: {len(test_set)}")
+
+    # ---- Step 4: copy files into organized folders ----
+    copy_split("train", train_set)
+    copy_split("val", val_set)
+    copy_split("test", test_set)
+
+    print("Done. Files copied to:", OUT_DIR)
+
+
+# ---- Helper ----
 def copy_split(split_name, items):
     img_out = OUT_DIR / split_name / "images"
     label_out = OUT_DIR / split_name / "labels"
@@ -58,8 +68,6 @@ def copy_split(split_name, items):
         shutil.copy(img_path, img_out / img_path.name)
         shutil.copy(label_path, label_out / label_path.name)
 
-copy_split("train", train_set)
-copy_split("val", val_set)
-copy_split("test", test_set)
 
-print("Done. Files copied to:", OUT_DIR)
+if __name__ == "__main__":
+    main()
