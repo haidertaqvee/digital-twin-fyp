@@ -1,0 +1,43 @@
+# TerraTwin — dependency manifest
+#
+# Install (Windows/macOS/Linux CPU or NVIDIA CUDA):
+#   conda create -n digital-twin python=3.10
+#   conda activate digital-twin
+#   pip install -r requirements.txt
+#
+# For CUDA (GTX 1660 Super): install PyTorch first from the CUDA index,
+# then the rest of the file:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#   pip install -r requirements.txt          # will see torch already satisfied
+#
+# AMD MI300X (ROCm) fallback:
+#   pip install --index-url https://download.pytorch.org/whl/rocm6.2 torch torchvision
+#   pip install -r requirements.txt
+#
+# Frozen on 2026-09-08 from envs/digital-twin (Python 3.10).
+# Only project-relevant deps are pinned; unrelated conda packages omitted.
+
+# core
+numpy==2.2.6
+Pillow==12.2.0
+matplotlib==3.10.9
+tqdm==4.70.0
+
+# PyTorch — local default is CPU; override with cu121 or rocm6.2 per notes above
+torch==2.13.0
+torchvision==0.28.0
+
+# segmentation
+segmentation-models-pytorch==0.5.0
+timm==1.0.29
+
+# geospatial
+rasterio==1.4.4
+geopandas==1.1.4
+shapely==2.1.2
+pyproj==3.7.1
+affine==2.4.0
+
+# also pulled in by geopandas / rasterio but explicit for clarity
+# scikit-learn is a transitive dep of some viz helpers; keep if needed
+# scikit-learn==1.7.2

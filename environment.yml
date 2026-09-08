@@ -1,0 +1,25 @@
+name: digital-twin
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  # PyTorch — CPU by default. For NVIDIA CUDA (GTX 1660 Super), install
+  # torch/torchvision from the CUDA wheel index before env create:
+  #   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+  # For AMD MI300X (ROCm fallback):
+  #   pip install --index-url https://download.pytorch.org/whl/rocm6.2 torch torchvision
+  - pip
+  - pip:
+    - numpy==2.2.6
+    - Pillow==12.2.0
+    - matplotlib==3.10.9
+    - tqdm==4.70.0
+    - torch==2.13.0
+    - torchvision==0.28.0
+    - segmentation-models-pytorch==0.5.0
+    - timm==1.0.29
+    - rasterio==1.4.4
+    - geopandas==1.1.4
+    - shapely==2.1.2
+    - pyproj==3.7.1
+    - affine==2.4.0

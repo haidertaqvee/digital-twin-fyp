@@ -4,7 +4,6 @@ models/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
-venv/
 .env
 *.pth
 *.tar.gz
@@ -12,8 +11,9 @@ venv/
 # Checked-in conda environment (machine-specific, not source)
 envs/
 
+# Claude Code — project-local settings are machine-specific, do not commit
+.claude/settings.local.json
+
 # Vendored upstream repos — separate git clones, not submodules
-satnerf/
-sat-bundleadjust/
 satnerf/
 sat-bundleadjust/
