@@ -8,3 +8,12 @@ venv/
 .env
 *.pth
 *.tar.gz
+
+# Checked-in conda environment (machine-specific, not source)
+envs/
+
+# Vendored upstream repos — separate git clones, not submodules
+satnerf/
+sat-bundleadjust/
+satnerf/
+sat-bundleadjust/

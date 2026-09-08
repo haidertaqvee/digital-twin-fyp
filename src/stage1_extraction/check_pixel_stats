@@ -1,0 +1,53 @@
+"""
+Run this once to find out the REAL pixel value range across your dataset.
+This tells us what fixed normalization scale to use in dataset.py.
+
+Usage: python check_pixel_stats.py
+"""
+import rasterio
+import numpy as np
+from pathlib import Path
+import random
+
+TRAIN_IMG_DIR = Path("E:/digital-twin-fyp/data/processed/train/images")
+
+random.seed(42)
+all_images = sorted(TRAIN_IMG_DIR.glob("*.tif"))
+
+# Sample 100 tiles (or all, if fewer) — enough to get a reliable picture
+# without reading all 699 files
+sample_size = min(100, len(all_images))
+sample_images = random.sample(all_images, sample_size)
+
+print(f"Checking dtype and pixel ranges across {sample_size} sample tiles...\n")
+
+all_mins = []
+all_maxs = []
+all_p1 = []   # 1st percentile
+all_p99 = []  # 99th percentile
+dtype_seen = None
+
+for img_path in sample_images:
+    with rasterio.open(img_path) as src:
+        dtype_seen = src.dtypes[0]
+        data = src.read([1, 2, 3]).astype(np.float32)
+
+        # ignore pure black no-data pixels when computing stats,
+        # otherwise they'll drag the min down to 0 for every tile
+        valid = data[data > 0]
+        if valid.size == 0:
+            continue
+
+        all_mins.append(valid.min())
+        all_maxs.append(valid.max())
+        all_p1.append(np.percentile(valid, 1))
+        all_p99.append(np.percentile(valid, 99))
+
+print(f"Source dtype: {dtype_seen}")
+print(f"Absolute min (excluding 0/no-data): {min(all_mins):.1f}")
+print(f"Absolute max: {max(all_maxs):.1f}")
+print(f"Average 1st percentile value: {np.mean(all_p1):.1f}")
+print(f"Average 99th percentile value: {np.mean(all_p99):.1f}")
+print(f"\nSuggested fixed normalization max: {np.percentile(all_maxs, 95):.0f}")
+print("(This is the 95th percentile of per-tile maxima — a robust ceiling")
+print(" that ignores rare bright outlier pixels like sensor glare.)")
