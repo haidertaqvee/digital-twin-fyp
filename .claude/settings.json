@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(E:/digital-twin-fyp/envs/digital-twin/python.exe src/stage1_extraction/train_unet.py *)",
+      "Bash(E:/digital-twin-fyp/envs/digital-twin/python.exe src/stage1_extraction/train.py *)",
+      "Bash(E:/digital-twin-fyp/envs/digital-twin/python.exe src/stage1_extraction/dataset.py *)",
+      "Bash(E:/digital-twin-fyp/envs/digital-twin/python.exe src/stage1_extraction/verify_masks.py *)",
+      "Bash(E:/digital-twin-fyp/envs/digital-twin/python.exe src/stage1_extraction/verify_alignment.py *)",
+      "Bash(E:/digital-twin-fyp/envs/digital-twin/python.exe src/stage1_extraction/visualize_sample.py *)",
+      "Bash(E:/digital-twin-fyp/envs/digital-twin/python.exe src/stage1_extraction/check_pixel_stats *)",
+      "Bash(envs/digital-twin/python.exe src/stage1_extraction/*)",
+      "Bash(E:/digital-twin-fyp/envs/digital-twin/python.exe -m py_compile *)",
+      "Bash(E:/digital-twin-fyp/envs/digital-twin/python.exe -m pip list *)",
+      "Bash(E:/digital-twin-fyp/envs/digital-twin/python.exe -m pip show *)",
+      "Bash(E:/digital-twin-fyp/envs/digital-twin/python.exe -m pip install *)",
+      "Bash(envs/digital-twin/python.exe -m pip *)",
+      "Bash(pip install *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
