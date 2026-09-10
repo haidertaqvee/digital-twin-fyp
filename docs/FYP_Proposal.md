@@ -2,8 +2,8 @@
 
 ### FYP Proposal — BS Space Science, Institute of Space Technology
 **Student:** TerraTwin (solo submission) · **Supervisor:** Dr. Sajid Ghuffar  
-**Date:** 8 September 2026 · **Version:** 1.0 — for supervisor review  
-**Repository:** `E:\digital-twin-fyp` · **Pipeline code:** `src/stage1_extraction/`
+**Date:** 10 September 2026 · **Version:** 1.1 — revised after Stages 1–2 were implemented and measured  
+**Repository:** `E:\digital-twin-fyp` · **Pipeline code:** `src/stage1_extraction/`, `src/stage2_enrichment/`
 
 > **Note on dual context.** This proposal is written for the FYP examination. The same codebase is entered as a solo student submission to the **AI Builders Hackathon on Devpost** (deadline 15 September 2026, 11:00 PM EDT). The hackathon serves as an external milestone for completing the Stage 1–4 MVP; it does not alter the academic scope or evaluation criteria. The hackathon is not discussed further except where it constrains the MVP timeline.
 
@@ -38,7 +38,7 @@ Autonomous systems — ground robots, delivery drones, and urban air mobility pl
 
 The pipeline has four MVP stages: (1) deep-learning-based building-footprint segmentation from SpaceNet imagery, (2) vectorization of masks to georeferenced polygons with height attribution, (3) extrusion to 3D meshes, and (4) integration into a Unity URP scene via heightmap and land-cover textures that drive procedural terrain and building placement. The MVP is evaluated on SpaceNet 2 (Las Vegas) with quantitative segmentation metrics (IoU, F1) and a qualitative Unity demo neighbourhood. Longer-term extensions — temporal change detection, photorealistic neural rendering (Sat-NeRF), and Isaac Sim / Gazebo / ROS integration — are scoped as post-MVP future work.
 
-At the time of writing, the Stage 1 data pipeline is complete and verified (999-tile subset, 673 valid training masks, fixed normalization ceiling `NORM_MAX = 1910.0`), a U-Net with ResNet-34 backbone (BCE+Dice loss) is implemented and smoke-tested on CPU, and the Unity project is scaffolded to consume `heightmap.png` / `landcover.png` products. The immediate next step is full training on the AMD Developer Cloud (MI300X).
+**Stages 1 and 2 are now implemented and measured, not merely designed.** The Stage 1 segmentation model was trained on a single local GPU (GTX 1660 Super, 6 GB) and reaches **0.8062 IoU / 0.8927 F1 on the held-out test split** (146 tiles, never used for model selection), exceeding the O1 target of IoU ≥ 0.60 by a wide margin. Stage 2 vectorization is implemented and **round-trip validated against the original SpaceNet labels at IoU 0.992–0.996**, exceeding the O2 target. Applied to the model's own predictions, it yields 3,621 georeferenced building polygons across 140 of 146 test tiles with heights attached by a documented heuristic. The remaining MVP work is Stage 3 (extrusion to mesh/glTF) and Stage 4 (Unity URP demo neighbourhood). The AMD Developer Cloud path was **not needed** and remains an untested fallback.
 
 ---
 
@@ -78,13 +78,13 @@ To design, implement, and evaluate **TerraTwin**, an AI-driven pipeline that aut
 
 ### 3.2 Objectives
 
-| # | Objective | Maps to | Success criterion |
-|---|-----------|---------|-------------------|
-| O1 | Build a reproducible building-footprint segmentation model from SpaceNet 2 imagery | Stage 1 | Val IoU ≥ 0.60, F1 ≥ 0.70 on held-out split; full training completes on MI300X |
-| O2 | Vectorize predicted masks to georeferenced polygons and assign per-building heights | Stage 2 | ≥ 95% of predicted masks produce valid, CRS-consistent polygons; heights within a defensible heuristic or learned range |
-| O3 | Extrude polygons to watertight 3D meshes and export in an engine-agnostic format | Stage 3 | Meshes import into Unity without manual repair; per-building mesh validity ≥ 98% |
-| O4 | Integrate geometry into a Unity URP scene driven by `heightmap.png` + `landcover.png` | Stage 4 | Walkable / flyable demo neighbourhood; Unity accepts 513×513 heightmap and RGB land-cover without resampling artefacts |
-| O5 | Evaluate end-to-end and document for FYP examination and reproducibility | All | Proposal, codebase, trained weights, and demo are examinable and rerunnable from documented steps |
+| # | Objective | Maps to | Success criterion | Status (10 Sep 2026) |
+|---|-----------|---------|-------------------|----------------------|
+| O1 | Build a reproducible building-footprint segmentation model from SpaceNet 2 imagery | Stage 1 | Val IoU ≥ 0.60, F1 ≥ 0.70 on held-out split; full training completes on MI300X | **MET and exceeded** — val IoU 0.8040 / F1 0.8913; **test IoU 0.8062 / F1 0.8927**. Trained locally on the GTX 1660 Super; the MI300X path was not required (see §10.2). |
+| O2 | Vectorize predicted masks to georeferenced polygons and assign per-building heights | Stage 2 | ≥ 95% of predicted masks produce valid, CRS-consistent polygons; heights within a defensible heuristic or learned range | **MET** — 140/146 test tiles produced polygons (the 6 empty tiles legitimately contain no buildings); **0 null and 0 invalid geometries**, CRS-consistent in EPSG:4326; round-trip IoU 0.992–0.996 vs source labels. Heights via documented heuristic (§7.3). |
+| O3 | Extrude polygons to watertight 3D meshes and export in an engine-agnostic format | Stage 3 | Meshes import into Unity without manual repair; per-building mesh validity ≥ 98% | **Not started** — on the critical path. |
+| O4 | Integrate geometry into a Unity URP scene driven by `heightmap.png` + `landcover.png` | Stage 4 | Walkable / flyable demo neighbourhood; Unity accepts 513×513 heightmap and RGB land-cover without resampling artefacts | **Not started** — no Unity project exists yet. |
+| O5 | Evaluate end-to-end and document for FYP examination and reproducibility | All | Proposal, codebase, trained weights, and demo are examinable and rerunnable from documented steps | **Partial** — Stages 1–2 documented and rerunnable; dependency manifests re-frozen to the versions that actually produced the results. |
 
 ---
 
@@ -100,7 +100,9 @@ Raster-to-vector conversion is well-trodden in GIS (rasterio / GDAL polygonize, 
 
 ### 4.3 3D Reconstruction & Digital Twins
 
-City-scale digital twins have been pursued via LiDAR-driven extrusion, photogrammetric mesh reconstruction, and more recently neural rendering (NeRF, 3D Gaussian Splatting). Sat-NeRF (Derksen & Izzo, 2021; vendored in `satnerf/`) is relevant as a future photorealistic path but is explicitly out of MVP scope — it requires multi-view RPC imagery and bundle adjustment (`sat-bundleadjust/`), which the current single-image-per-tile dataset does not support.
+City-scale digital twins have been pursued via LiDAR-driven extrusion, photogrammetric mesh reconstruction, and more recently neural rendering (NeRF, 3D Gaussian Splatting). Sat-NeRF (Marí et al., 2022; vendored in `satnerf/`) is relevant as a future photorealistic path but is explicitly out of MVP scope — it requires multi-view RPC imagery and bundle adjustment (`sat-bundleadjust/`), which the current single-image-per-tile dataset does not support.
+
+**This constraint was verified empirically rather than assumed (10 September 2026), and the evidence is recorded in §12.1 because it determines what the MVP can claim.** Across all 999 sampled tiles there are **999 distinct ground footprints and no overlapping coverage** — no ground area is observed twice. No RPC camera model is present in any tile (no `.rpc` sidecar files in `data/raw/`, no `rpc` GeoTIFF tag, no GCPs). `satnerf/create_satellite_dataset.py` requires `rpcm.rpc_from_geotiff()` per image, so the vendored pipeline cannot ingest this dataset at all. Recent single-view 3DGS methods (SVG3D, MonoSplat; shadow-aware splatting for multi-view satellite) reconstruct from one image only by invoking diffusion or monocular-depth priors — that is, they *hallucinate* vertical structure — and remain an active research frontier rather than a deliverable engineering step. Presenting such output as a reconstruction of Las Vegas would misrepresent the result, so it is deferred to §14 with an explicit statement of what data it would require.
 
 ### 4.4 Simulation Integration
 
@@ -127,8 +129,10 @@ No open pipeline connects all four MVP stages with a single geographic dataset, 
 
 **Repository layout** (`src/stage{1..5}_*` mirrors the pipeline):
 
-- `stage1_extraction` — implemented (data pipeline + training)
-- `stage2_enrichment`, `stage3_reconstruction`, `stage4_change_detection`, `stage5_simulation` — scaffolded / planned
+- `stage1_extraction` — **implemented, trained, and evaluated** (see §6)
+- `stage2_enrichment` — **implemented and verified** (see §7)
+- `stage3_reconstruction` — **not started** (on the critical path)
+- `stage4_change_detection` / `stage5_simulation` — **empty scaffolds** that become the Unity MVP
 
 **Design principles:**
 
@@ -141,7 +145,7 @@ No open pipeline connects all four MVP stages with a single geographic dataset, 
 
 ## 6. Stage 1 — Semantic Feature Extraction (Building Footprint Segmentation)
 
-> **Status: Implemented and verified. Immediate next step is full 15-epoch training on AMD MI300X.**
+> **Status: COMPLETE — trained and evaluated. Test IoU 0.8062 / F1 0.8927 on 146 held-out tiles.**
 
 ### 6.1 Data Preparation
 
