@@ -14,7 +14,10 @@
 #   pip install --index-url https://download.pytorch.org/whl/rocm6.2 torch torchvision
 #   pip install -r requirements.txt
 #
-# Frozen on 2026-09-08 from envs/digital-twin (Python 3.10).
+# Frozen 2026-09-09 from envs/digital-twin (Python 3.10) — this is the exact
+# environment that produced the Stage-1 model (val IoU 0.8040 / test IoU 0.8062).
+# torch/torchvision are pinned to the cu121 builds actually installed; the
+# previous 2.13.0/0.28.0 pins were never available on that index.
 # Only project-relevant deps are pinned; unrelated conda packages omitted.
 
 # core
@@ -23,9 +26,12 @@ Pillow==12.2.0
 matplotlib==3.10.9
 tqdm==4.70.0
 
-# PyTorch — local default is CPU; override with cu121 or rocm6.2 per notes above
-torch==2.13.0
-torchvision==0.28.0
+# PyTorch — installed from the cu121 index (see notes above). The local build
+# carries the +cu121 suffix; a CPU or ROCm install of the same version works
+# identically for this pipeline.
+torch==2.5.1
+torchvision==0.20.1
+sympy==1.13.1
 
 # segmentation
 segmentation-models-pytorch==0.5.0
