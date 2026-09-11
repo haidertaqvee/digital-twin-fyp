@@ -17,3 +17,4 @@ envs/
 # Vendored upstream repos — separate git clones, not submodules
 satnerf/
 sat-bundleadjust/
+results/predict_pretrained-smoke.log

@@ -1,0 +1,53 @@
+{
+  "split": "test",
+  "tiles_verified": 3,
+  "checkpoint": "E:\\digital-twin-fyp\\models\\unet_resnet34_best.pth",
+  "checkpoint_epoch": 11,
+  "tolerance_mean_abs": 4.0,
+  "threshold": 0.5,
+  "norm_max": 1910.0,
+  "device": "cuda",
+  "all_match": true,
+  "iou_existing": 0.790391,
+  "iou_fresh": 0.790391,
+  "f1_existing": 0.882926,
+  "f1_fresh": 0.882926,
+  "per_tile": [
+    {
+      "tile": "AOI_2_Vegas_img101",
+      "shape": [
+        650,
+        650
+      ],
+      "mean_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "binary_agreement": 1.0,
+      "tile_iou_vs_gt": 0.7969,
+      "match": true
+    },
+    {
+      "tile": "AOI_2_Vegas_img1021",
+      "shape": [
+        650,
+        650
+      ],
+      "mean_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "binary_agreement": 1.0,
+      "tile_iou_vs_gt": 0.8248,
+      "match": true
+    },
+    {
+      "tile": "AOI_2_Vegas_img1065",
+      "shape": [
+        650,
+        650
+      ],
+      "mean_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "binary_agreement": 1.0,
+      "tile_iou_vs_gt": 0.7481,
+      "match": true
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+﻿Device: cuda (NVIDIA GeForce GTX 1660 SUPER)
+Checkpoint: E:\digital-twin-fyp\models\unet_resnet34_best.pth
+  epoch 11 | val IoU 0.8040 | val F1 0.8913
+
+Verifying 3 tiles: mask_AOI_2_Vegas_img101, mask_AOI_2_Vegas_img1021, mask_AOI_2_Vegas_img1065
+python.exe : 
+At line:1 char:360
++ ... ython.exe"; & $py src/stage1_extraction/verify_stage1.py --tiles 3 2> ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+verify:   0%|          | 0/3 [00:00<?, ?it/s]
+verify:  33%|███▎      | 1/3 [00:09<00:19,  9.65s/it]
+verify:  67%|██████▋   | 2/3 [00:10<00:04,  4.28s/it]
+verify: 100%|██████████| 3/3 [00:10<00:00,  2.50s/it]
+verify: 100%|██████████| 3/3 [00:10<00:00,  3.52s/it]
+  AOI_2_Vegas_img101: mean|Δ|=0.000 max|Δ|=0 binary_agree=1.00000 IoU=0.7969  -> MATCH
+  AOI_2_Vegas_img1021: mean|Δ|=0.000 max|Δ|=0 binary_agree=1.00000 IoU=0.8248  -> MATCH
+  AOI_2_Vegas_img1065: mean|Δ|=0.000 max|Δ|=0 binary_agree=1.00000 IoU=0.7481  -> MATCH
+
+Existing-prediction IoU 0.7904 | fresh IoU 0.7904
+VERDICT: PASS — Stage 1 verified
+Wrote E:\digital-twin-fyp\results\verify_stage1\verification.json
