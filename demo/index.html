@@ -631,6 +631,14 @@
         <button class="scale-btn" data-scale="5.0">5x Tower</button>
       </div>
 
+      <button class="btn btn-orbit" id="btnToggleCitywide" style="color: var(--cyan); border-color: rgba(34, 211, 238, 0.3);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M3 9h18M9 21V9"/>
+        </svg>
+        City-Wide 3D
+      </button>
+
       <button class="btn btn-orbit" id="btnOrbitView">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -831,9 +839,25 @@
         
         if (map.getLayer('buildings-3d')) {
           map.setPaintProperty('buildings-3d', 'fill-extrusion-height', ['*', ['get', 'height_m'], heightMultiplier]);
-          showToast(`3D Extrusion Height Scale: ${heightMultiplier}x`);
         }
+        if (map.getLayer('citywide-3d-buildings')) {
+          map.setPaintProperty('citywide-3d-buildings', 'fill-extrusion-height', ['*', ['coalesce', ['get', 'render_height'], 6.0], heightMultiplier]);
+        }
+        showToast(`3D Extrusion Height Scale: ${heightMultiplier}x`);
       });
+    });
+
+    // Toggle Citywide 3D Buildings
+    let showCitywide = true;
+    document.getElementById('btnToggleCitywide').addEventListener('click', () => {
+      showCitywide = !showCitywide;
+      const btn = document.getElementById('btnToggleCitywide');
+      if (map.getLayer('citywide-3d-buildings')) {
+        map.setLayoutProperty('citywide-3d-buildings', 'visibility', showCitywide ? 'visible' : 'none');
+      }
+      btn.style.color = showCitywide ? 'var(--cyan)' : 'var(--text-muted)';
+      btn.style.borderColor = showCitywide ? 'rgba(34, 211, 238, 0.3)' : 'var(--border)';
+      showToast(showCitywide ? 'City-Wide 3D Buildings: ON' : 'City-Wide 3D Buildings: OFF');
     });
 
     // 3D Orbit Camera Button
@@ -921,6 +945,32 @@
         if (map.getSource('buildings-source')) {
           map.getSource('buildings-source').setData(currentGeoJson);
         } else {
+          // Add City-Wide 3D Buildings Source (OpenFreeMap planet vector tiles)
+          if (!map.getSource('citywide-src')) {
+            map.addSource('citywide-src', {
+              type: 'vector',
+              url: 'https://tiles.openfreemap.org/planet'
+            });
+
+            map.addLayer({
+              id: 'citywide-3d-buildings',
+              type: 'fill-extrusion',
+              source: 'citywide-src',
+              'source-layer': 'building',
+              minzoom: 13,
+              layout: {
+                'visibility': 'visible'
+              },
+              paint: {
+                'fill-extrusion-color': '#1e293b',
+                'fill-extrusion-height': ['*', ['coalesce', ['get', 'render_height'], 6.0], heightMultiplier],
+                'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+                'fill-extrusion-opacity': 0.70,
+                'fill-extrusion-vertical-gradient': true
+              }
+            });
+          }
+
           map.addSource('buildings-source', {
             type: 'geojson',
             data: currentGeoJson
