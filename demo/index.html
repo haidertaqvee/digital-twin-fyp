@@ -726,6 +726,16 @@
         City-Wide 3D
       </button>
 
+      <button class="btn btn-orbit" id="btnFloodSim" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);" title="Open 3D Flood Inundation Simulator">
+        <span style="font-size: 0.95rem;">🌊</span>
+        Flood Sim
+      </button>
+
+      <button class="btn btn-orbit" id="btnEarthquakeLayer" style="color: #f87171; border-color: rgba(248, 113, 113, 0.4);" title="View Live Earthquakes & Tectonic Faults">
+        <span style="font-size: 0.95rem;">🌋</span>
+        Earthquakes
+      </button>
+
       <button class="btn btn-orbit" id="btnOrbitView">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -765,6 +775,22 @@
       <div class="stat-card">
         <div class="stat-val" style="color: var(--sos-red);" id="statActiveSos">0</div>
         <div class="stat-label">Active SOS Alerts</div>
+      </div>
+    </div>
+
+    <!-- Multi-Hazard Live Summary Status -->
+    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.68rem; font-weight: 700; text-transform: uppercase;">
+        <span style="color: var(--cyan);">Hazard Telemetry</span>
+        <span id="activeHazardBadge" style="color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 1px 6px; border-radius: 4px; font-size: 0.65rem;">LIVE FEEDS</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.72rem;">
+        <span style="color: var(--text-muted);">USGS Real-Time:</span>
+        <span id="leftQuakeStatus" style="color: #4ade80; font-weight: 600;">Feed Active (M2.5+)</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.72rem;">
+        <span style="color: var(--text-muted);">Basin Hydrology:</span>
+        <span id="leftFloodStatus" style="color: #38bdf8; font-weight: 600;">Soan / Wash Gauge</span>
       </div>
     </div>
 
@@ -858,6 +884,124 @@
 
     <div class="floor-badges-row" id="modalFloorBadges">
       <div class="floor-tag active" data-floor="all">All Floors</div>
+    </div>
+  </div>
+
+  <!-- 3D Flood Inundation Simulator Panel -->
+  <div id="floodSimPanel" class="glass" style="display: none; position: absolute; top: 85px; right: 16px; width: 370px; z-index: 15; padding: 18px; border: 1px solid rgba(56, 189, 248, 0.4); box-shadow: 0 12px 42px rgba(2, 132, 199, 0.35);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">🌊</span>
+        <div>
+          <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 1.05rem; color: #38bdf8;">3D Flood Simulator</div>
+          <div style="font-size: 0.68rem; color: var(--text-muted);">Topographic DEM Inundation Modeling</div>
+        </div>
+      </div>
+      <button id="btnCloseFloodSim" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.3rem; cursor: pointer;">&times;</button>
+    </div>
+
+    <!-- Surge Slider Control -->
+    <div style="margin-bottom: 14px;">
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 6px;">
+        <span style="font-weight: 600; color: var(--text);">Water Level Surge:</span>
+        <span id="floodSurgeVal" style="font-weight: 800; color: #38bdf8; font-family: 'Space Grotesk', monospace;">+0.0 m (Dry Ground)</span>
+      </div>
+      <input type="range" id="floodSurgeSlider" min="0" max="10" step="0.5" value="0" style="width: 100%; accent-color: #38bdf8; cursor: pointer;">
+      <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;">
+        <span>0m (Baseline)</span>
+        <span>+3.5m (L1 Flood)</span>
+        <span>+10m (Severe)</span>
+      </div>
+    </div>
+
+    <!-- Scenario Presets -->
+    <div style="margin-bottom: 14px;">
+      <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">Preset Surge Scenarios:</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+        <button class="btn btn-orbit flood-preset-btn" data-surge="1.5" style="font-size: 0.72rem; padding: 6px 8px; justify-content: center;">
+          🌧️ Monsoon Flash (+1.5m)
+        </button>
+        <button class="btn btn-orbit flood-preset-btn" data-surge="3.5" style="font-size: 0.72rem; padding: 6px 8px; justify-content: center;">
+          🌊 Basin Surge (+3.5m)
+        </button>
+        <button class="btn btn-orbit flood-preset-btn" data-surge="6.0" style="font-size: 0.72rem; padding: 6px 8px; justify-content: center; grid-column: span 2;">
+          🚨 100-Year Catastrophic Deluge (+6.0m)
+        </button>
+      </div>
+    </div>
+
+    <!-- Inundation Impact Stats -->
+    <div style="background: rgba(2, 132, 199, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+      <div style="font-size: 0.68rem; color: #7dd3fc; text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">DEM Topographic Analysis</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.75rem;">
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 0.68rem;">Water Datum MSL:</span>
+          <strong id="floodDatumMsl" style="font-family: 'Space Grotesk', monospace; color: white;">525.0 m MSL</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 0.68rem;">Submerged Buildings:</span>
+          <strong id="submergedBldgsCount" style="font-family: 'Space Grotesk', monospace; color: #f87171;">0 (0%)</strong>
+        </div>
+        <div style="grid-column: span 2;">
+          <span style="color: var(--text-muted); display: block; font-size: 0.68rem;">Egress & Refuge Protocol:</span>
+          <span id="floodRefugeStrategy" style="color: #34d399; font-weight: 600; font-size: 0.74rem;">Ground entry completely clear</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Hydrological Gauge Feed -->
+    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Hydrological Monitoring Station</div>
+    <div id="hydroStationCard" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 0.73rem;">
+      <div style="font-weight: 700; color: var(--text);" id="hydroStationName">Soan River Basin - IST Gauge</div>
+      <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+        <span style="color: var(--text-muted);">Stage: <strong id="hydroStage" style="color: #38bdf8;">513.2m</strong></span>
+        <span style="color: var(--text-muted);">Discharge: <strong id="hydroDischarge" style="color: white;">420.5 m³/s</strong></span>
+      </div>
+      <div style="color: #fbbf24; font-size: 0.68rem; margin-top: 3px;" id="hydroTrend">▲ RISING (Rawal Dam Spillway Active)</div>
+    </div>
+  </div>
+
+  <!-- Seismic Hazard & Tectonic Fault Monitor Panel -->
+  <div id="earthquakePanel" class="glass" style="display: none; position: absolute; top: 85px; right: 16px; width: 380px; z-index: 15; padding: 18px; border: 1px solid rgba(239, 68, 68, 0.4); box-shadow: 0 12px 42px rgba(239, 68, 68, 0.3);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">🌋</span>
+        <div>
+          <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 1.05rem; color: #f87171;">Seismic & Fault Monitor</div>
+          <div style="font-size: 0.68rem; color: var(--text-muted);">USGS Live Real-Time Feed + Fault Systems</div>
+        </div>
+      </div>
+      <button id="btnCloseEarthquake" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.3rem; cursor: pointer;">&times;</button>
+    </div>
+
+    <!-- Fault Line Overlay Toggles -->
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem;">
+        <span style="font-weight: 700; color: var(--text);">Tectonic Fault Overlays:</span>
+        <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <input type="checkbox" id="chkFaultLines" checked style="accent-color: #ef4444;">
+          <span style="color: #ef4444; font-weight: 700;">ACTIVE</span>
+        </label>
+      </div>
+      <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 4px; line-height: 1.3;">
+        • MBT (Margalla Thrust) &amp; Rawat Fault (IST Expressway Corridor)<br>
+        • Decatur &amp; Eglington Faults (Las Vegas Valley)
+      </div>
+    </div>
+
+    <!-- Earthquake Events List -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+      <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Recent Seismic Events:</span>
+      <span id="quakeCountBadge" style="font-size: 0.68rem; color: #f87171; background: rgba(239, 68, 68, 0.15); padding: 1px 6px; border-radius: 4px;">0 Events</span>
+    </div>
+
+    <div id="quakeFeedList" style="display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; padding-right: 4px;">
+      <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 12px 0;">Loading USGS seismic feed...</div>
+    </div>
+
+    <!-- Structural Advisory Footer -->
+    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 8px; margin-top: 10px; font-size: 0.68rem; color: #fca5a5; line-height: 1.3;">
+      ⚠️ <strong>Structural Vulnerability Advisory:</strong> Structures within active fault rupture buffers are flagged for potential stairwell shear failure and non-structural masonry spalling.
     </div>
   </div>
 
@@ -1081,6 +1225,7 @@
       await loadTileManifest();
       await loadBuildingsLayer('all');
       await refreshActiveIncidents();
+      await initHazardModules();
       
       setInterval(refreshActiveIncidents, 8000);
     });
@@ -1551,6 +1696,10 @@
       const selectedFloorMsl = Math.round((terrainElev + (selectedFloor - 1) * 3.0) * 10) / 10;
       const vulnColor = props.vuln_class === 'high' ? '#ef4444' : (props.vuln_class === 'medium' ? '#f59e0b' : '#10b981');
 
+      const waterDatum = (currentBaseDatumM || 525.0) + (currentSurgeM || 0.0);
+      const isSubmerged = (currentSurgeM > 0) && (waterDatum > terrainElev);
+      const floodSubmersionDepth = isSubmerged ? (waterDatum - terrainElev).toFixed(1) : 0;
+
       let floorStackRows = '';
       for (let f = totalFloors; f >= 1; f--) {
         const isSelected = (f === selectedFloor);
@@ -1592,6 +1741,16 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(34, 211, 238, 0.08); border: 1px solid rgba(34, 211, 238, 0.25); padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.75rem;">
           <div><strong>DEM Ground:</strong> <span style="color: var(--cyan);">${terrainElev.toFixed(1)} m MSL</span></div>
           <div><strong>Roof Altitude:</strong> <span style="color: white;">${roofElev.toFixed(1)} m MSL</span></div>
+        </div>
+
+        ${isSubmerged ? `
+          <div style="background: rgba(2, 132, 199, 0.25); border: 1px solid #0284c7; padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.72rem; color: #38bdf8;">
+            🌊 <strong>FLOOD INUNDATION:</strong> Ground submerged by ${floodSubmersionDepth}m. Evacuate to Floor 2+!
+          </div>
+        ` : ''}
+
+        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 6px; margin-bottom: 8px; font-size: 0.68rem; color: #fca5a5;">
+          🌋 <strong>Seismic Zone:</strong> Active Fault Vicinity • Inspect stairwells for shear cracking.
         </div>
 
         <!-- Interactive Vertical Floor Stack -->
@@ -1993,6 +2152,488 @@
     document.getElementById('btnClose3D').addEventListener('click', () => {
       document.getElementById('modal3D').style.display = 'none';
     });
+
+    // ==========================================================
+    // MULTI-HAZARD ENGINE: FLOOD SIMULATION & USGS SEISMIC FEED
+    // ==========================================================
+    let floodHazardData = null;
+    let earthquakeHazardData = null;
+    let currentSurgeM = 0.0;
+    let currentBaseDatumM = 525.0; // Islamabad default ~525m MSL or Vegas ~690m MSL
+    let earthquakeMarkers = [];
+    let hydroStationMarkers = [];
+
+    async function initHazardModules() {
+      console.log('Initializing multi-hazard layers (USGS Seismic + 3D Flood Sim)...');
+
+      // Top Bar Button Listeners
+      const btnFlood = document.getElementById('btnFloodSim');
+      if (btnFlood) btnFlood.addEventListener('click', toggleFloodSimPanel);
+
+      const btnQuake = document.getElementById('btnEarthquakeLayer');
+      if (btnQuake) btnQuake.addEventListener('click', toggleEarthquakePanel);
+
+      const btnCloseF = document.getElementById('btnCloseFloodSim');
+      if (btnCloseF) {
+        btnCloseF.addEventListener('click', () => {
+          document.getElementById('floodSimPanel').style.display = 'none';
+          if (btnFlood) { btnFlood.style.background = ''; btnFlood.style.borderColor = ''; }
+        });
+      }
+
+      const btnCloseE = document.getElementById('btnCloseEarthquake');
+      if (btnCloseE) {
+        btnCloseE.addEventListener('click', () => {
+          document.getElementById('earthquakePanel').style.display = 'none';
+          if (btnQuake) { btnQuake.style.background = ''; btnQuake.style.borderColor = ''; }
+        });
+      }
+
+      // Flood Surge Slider Listener
+      const slider = document.getElementById('floodSurgeSlider');
+      if (slider) {
+        slider.addEventListener('input', (e) => {
+          const val = parseFloat(e.target.value);
+          applyFloodSurge(val);
+        });
+      }
+
+      // Flood Scenario Presets
+      document.querySelectorAll('.flood-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const surge = parseFloat(btn.dataset.surge);
+          if (slider) slider.value = surge;
+          applyFloodSurge(surge);
+          showToast(`Flood Scenario Activated: ${btn.textContent.trim()}`);
+        });
+      });
+
+      // Fault lines checkbox toggle
+      const chkFault = document.getElementById('chkFaultLines');
+      if (chkFault) {
+        chkFault.addEventListener('change', (e) => {
+          const checked = e.target.checked;
+          if (map.getLayer('fault-lines-line')) {
+            map.setLayoutProperty('fault-lines-line', 'visibility', checked ? 'visible' : 'none');
+          }
+          if (map.getLayer('fault-lines-casing')) {
+            map.setLayoutProperty('fault-lines-casing', 'visibility', checked ? 'visible' : 'none');
+          }
+        });
+      }
+
+      // Fetch live hazard data from backend
+      await Promise.all([loadFloodHazardData(), loadEarthquakeHazardData()]);
+    }
+
+    function toggleFloodSimPanel() {
+      const panel = document.getElementById('floodSimPanel');
+      const btn = document.getElementById('btnFloodSim');
+      const isVisible = panel.style.display === 'block';
+      panel.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible) {
+        btn.style.background = 'rgba(56, 189, 248, 0.25)';
+        btn.style.borderColor = '#38bdf8';
+        showToast('3D Flood Simulator Online: Adjust surge slider to simulate inundation');
+      } else {
+        btn.style.background = '';
+        btn.style.borderColor = '';
+      }
+    }
+
+    function toggleEarthquakePanel() {
+      const panel = document.getElementById('earthquakePanel');
+      const btn = document.getElementById('btnEarthquakeLayer');
+      const isVisible = panel.style.display === 'block';
+      panel.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible) {
+        btn.style.background = 'rgba(239, 68, 68, 0.25)';
+        btn.style.borderColor = '#ef4444';
+        showToast('Seismic Hazard Monitor Online: Live USGS earthquake feed (M2.5+)');
+      } else {
+        btn.style.background = '';
+        btn.style.borderColor = '';
+      }
+    }
+
+    async function loadFloodHazardData() {
+      try {
+        const center = map.getCenter();
+        const res = await fetch(`/api/hazards/flood?lat=${center.lat}&lon=${center.lng}`);
+        if (!res.ok) throw new Error('Flood hazard fetch failed');
+        floodHazardData = await res.json();
+
+        currentBaseDatumM = floodHazardData.base_datum_m || 525.0;
+        const datumEl = document.getElementById('floodDatumMsl');
+        if (datumEl) datumEl.textContent = `${currentBaseDatumM.toFixed(1)} m MSL`;
+
+        // Update station card
+        if (floodHazardData.stations && floodHazardData.stations.length > 0) {
+          const st = floodHazardData.stations[0];
+          document.getElementById('hydroStationName').textContent = st.name;
+          document.getElementById('hydroStage').textContent = `${st.current_stage_m.toFixed(1)}m`;
+          document.getElementById('hydroDischarge').textContent = `${st.discharge_m3_s.toFixed(1)} m³/s`;
+          document.getElementById('hydroTrend').textContent = `▲ ${st.trend} (${st.status})`;
+          document.getElementById('leftFloodStatus').textContent = `${st.status}: ${st.current_stage_m}m`;
+
+          // Add hydrological station markers on map
+          hydroStationMarkers.forEach(m => m.remove());
+          hydroStationMarkers = [];
+          floodHazardData.stations.forEach(station => {
+            const el = document.createElement('div');
+            el.className = 'hydro-station-marker';
+            el.style.width = '24px';
+            el.style.height = '24px';
+            el.style.borderRadius = '50%';
+            el.style.background = '#0284c7';
+            el.style.border = '2px solid #38bdf8';
+            el.style.boxShadow = '0 0 12px rgba(56, 189, 248, 0.6)';
+            el.style.display = 'flex';
+            el.style.alignItems = 'center';
+            el.style.justifyContent = 'center';
+            el.style.fontSize = '12px';
+            el.style.cursor = 'pointer';
+            el.innerHTML = '🌊';
+            el.title = `${station.name} (${station.current_stage_m}m)`;
+
+            el.onclick = () => {
+              new maplibregl.Popup({ offset: [0, -10] })
+                .setLngLat([station.lon, station.lat])
+                .setHTML(`
+                  <div class="popup-title">🌊 ${station.name}</div>
+                  <div class="popup-sub">${station.region} • Datum: ${station.elevation_datum_m}m MSL</div>
+                  <div style="font-size: 0.75rem; margin-bottom: 6px;">
+                    <div><strong>Current Stage:</strong> <span style="color: #38bdf8; font-weight: 700;">${station.current_stage_m}m</span> (Alert: ${station.warning_stage_m}m)</div>
+                    <div><strong>Discharge Rate:</strong> ${station.discharge_m3_s} m³/s</div>
+                    <div><strong>Trend:</strong> <span style="color: #fbbf24;">${station.trend}</span></div>
+                    <div><strong>Infrastructure:</strong> ${station.critical_infrastructure}</div>
+                  </div>
+                `)
+                .addTo(map);
+            };
+
+            const marker = new maplibregl.Marker({ element: el })
+              .setLngLat([station.lon, station.lat])
+              .addTo(map);
+            hydroStationMarkers.push(marker);
+          });
+        }
+
+        // Add Flood Risk Zones Polygons to Map
+        if (floodHazardData.flood_zones && !map.getSource('flood-zones-src')) {
+          map.addSource('flood-zones-src', {
+            type: 'geojson',
+            data: floodHazardData.flood_zones
+          });
+
+          map.addLayer({
+            id: 'flood-zones-fill',
+            type: 'fill',
+            source: 'flood-zones-src',
+            paint: {
+              'fill-color': ['coalesce', ['get', 'color'], '#0284c7'],
+              'fill-opacity': ['coalesce', ['get', 'fillOpacity'], 0.35]
+            }
+          });
+
+          map.addLayer({
+            id: 'flood-zones-line',
+            type: 'line',
+            source: 'flood-zones-src',
+            paint: {
+              'line-color': '#38bdf8',
+              'line-width': 2,
+              'line-dasharray': [4, 2]
+            }
+          });
+        }
+
+        // Initialize Dynamic Inundation Water Surface
+        initFloodWaterLayer();
+
+      } catch (err) {
+        console.warn('Could not load flood hazard data:', err);
+      }
+    }
+
+    function initFloodWaterLayer() {
+      if (map.getSource('flood-water-src')) return;
+
+      const waterGeoJson = generateWaterSurfaceGeoJson(currentSurgeM);
+      map.addSource('flood-water-src', {
+        type: 'geojson',
+        data: waterGeoJson
+      });
+
+      map.addLayer({
+        id: 'flood-water-extrusion',
+        type: 'fill-extrusion',
+        source: 'flood-water-src',
+        paint: {
+          'fill-extrusion-color': '#0284c7',
+          'fill-extrusion-height': ['get', 'water_height_m'],
+          'fill-extrusion-base': 0,
+          'fill-extrusion-opacity': 0.55,
+          'fill-extrusion-vertical-gradient': true
+        }
+      });
+    }
+
+    function generateWaterSurfaceGeoJson(surgeM) {
+      const center = map.getCenter();
+      const isIslamabad = (center.lat > 33.0 && center.lat < 34.0);
+      let coords;
+      if (isIslamabad) {
+        coords = [
+          [73.13, 33.55],
+          [73.23, 33.55],
+          [73.23, 33.47],
+          [73.13, 33.47],
+          [73.13, 33.55]
+        ];
+      } else {
+        coords = [
+          [-115.24, 36.24],
+          [-115.16, 36.24],
+          [-115.16, 36.16],
+          [-115.24, 36.16],
+          [-115.24, 36.24]
+        ];
+      }
+
+      const waterHeight = surgeM > 0 ? (surgeM * heightMultiplier) : 0;
+
+      return {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {
+              water_height_m: waterHeight,
+              surge_m: surgeM
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [coords]
+            }
+          }
+        ]
+      };
+    }
+
+    function applyFloodSurge(surgeM) {
+      currentSurgeM = surgeM;
+      const surgeLabel = surgeM === 0 ? '+0.0 m (Dry Ground)' : `+${surgeM.toFixed(1)} m Surge`;
+      document.getElementById('floodSurgeVal').textContent = surgeLabel;
+
+      const waterDatum = currentBaseDatumM + surgeM;
+      document.getElementById('floodDatumMsl').textContent = `${waterDatum.toFixed(1)} m MSL`;
+
+      // Update water plane extrusion
+      if (map.getSource('flood-water-src')) {
+        map.getSource('flood-water-src').setData(generateWaterSurfaceGeoJson(surgeM));
+      }
+
+      // Calculate Submerged Buildings count
+      if (rawBuildingsGeoJson && rawBuildingsGeoJson.features) {
+        let submergedCount = 0;
+        let totalCount = rawBuildingsGeoJson.features.length;
+
+        rawBuildingsGeoJson.features.forEach(f => {
+          const props = f.properties || {};
+          let gElev = props.dem_elevation_m;
+          if (gElev == null) {
+            gElev = (map.getCenter().lat > 33.0 && map.getCenter().lat < 34.0) ? 525.0 : 685.0;
+          }
+          if (waterDatum > gElev) {
+            submergedCount++;
+          }
+        });
+
+        const pct = totalCount > 0 ? Math.round((submergedCount / totalCount) * 100) : 0;
+        document.getElementById('submergedBldgsCount').textContent = `${submergedCount} (${pct}%)`;
+
+        const stratEl = document.getElementById('floodRefugeStrategy');
+        if (stratEl) {
+          if (surgeM === 0) {
+            stratEl.textContent = 'Ground entry completely clear';
+            stratEl.style.color = '#34d399';
+          } else if (surgeM <= 2.0) {
+            stratEl.textContent = 'Basements inundated. Ground floors vulnerable; vertical egress to Floor 2+ ready.';
+            stratEl.style.color = '#fbbf24';
+          } else if (surgeM <= 4.5) {
+            stratEl.textContent = 'Ground floor completely flooded. Occupants must shelter on Floor 2, 3, 4. Boat rescue underway.';
+            stratEl.style.color = '#f97316';
+          } else {
+            stratEl.textContent = 'CRITICAL: Severe deluge! Lower two floors submerged. Direct survivors to rooftops for aerial/boat pickup.';
+            stratEl.style.color = '#ef4444';
+          }
+        }
+      }
+    }
+
+    async function loadEarthquakeHazardData() {
+      try {
+        const center = map.getCenter();
+        const res = await fetch(`/api/hazards/earthquakes?lat=${center.lat}&lon=${center.lng}`);
+        if (!res.ok) throw new Error('Earthquake hazard fetch failed');
+        earthquakeHazardData = await res.json();
+
+        // Render Fault Lines on MapLibre
+        if (earthquakeHazardData.fault_lines && !map.getSource('fault-lines-src')) {
+          map.addSource('fault-lines-src', {
+            type: 'geojson',
+            data: earthquakeHazardData.fault_lines
+          });
+
+          // Casing glow line
+          map.addLayer({
+            id: 'fault-lines-casing',
+            type: 'line',
+            source: 'fault-lines-src',
+            paint: {
+              'line-color': '#000000',
+              'line-width': 5,
+              'line-opacity': 0.6
+            }
+          });
+
+          // Dashed primary fault line
+          map.addLayer({
+            id: 'fault-lines-line',
+            type: 'line',
+            source: 'fault-lines-src',
+            paint: {
+              'line-color': ['coalesce', ['get', 'color'], '#ef4444'],
+              'line-width': 3,
+              'line-dasharray': [3, 2]
+            }
+          });
+
+          // Click on fault line popup
+          map.on('click', 'fault-lines-line', (e) => {
+            if (!e.features || !e.features.length) return;
+            const props = e.features[0].properties;
+            new maplibregl.Popup({ offset: [0, -10] })
+              .setLngLat(e.lngLat)
+              .setHTML(`
+                <div class="popup-title" style="color: #ef4444;">🌋 ${props.name}</div>
+                <div class="popup-sub">${props.region} • ${props.type}</div>
+                <div style="font-size: 0.75rem; margin-bottom: 6px;">
+                  <div><strong>Slip Rate:</strong> ${props.slip_rate_mm_yr} mm/yr</div>
+                  <div><strong>Seismic Hazard:</strong> <span style="color: #fca5a5; font-weight: 700;">${props.seismic_risk}</span></div>
+                </div>
+              `)
+              .addTo(map);
+          });
+          map.on('mouseenter', 'fault-lines-line', () => { map.getCanvas().style.cursor = 'pointer'; });
+          map.on('mouseleave', 'fault-lines-line', () => { map.getCanvas().style.cursor = ''; });
+        }
+
+        // Render Earthquake Events & Feed
+        renderEarthquakeEvents(earthquakeHazardData.earthquakes || []);
+
+      } catch (err) {
+        console.warn('Could not load earthquake hazard data:', err);
+      }
+    }
+
+    function renderEarthquakeEvents(events) {
+      const badge = document.getElementById('quakeCountBadge');
+      if (badge) badge.textContent = `${events.length} Events`;
+      const listEl = document.getElementById('quakeFeedList');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+
+      earthquakeMarkers.forEach(m => m.remove());
+      earthquakeMarkers = [];
+
+      if (!events || events.length === 0) {
+        listEl.innerHTML = '<div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 12px 0;">No recent seismic events detected.</div>';
+        return;
+      }
+
+      events.forEach((eq) => {
+        const mmi = eq.mmi || {};
+        const magColor = eq.mag >= 5.0 ? '#ef4444' : (eq.mag >= 4.0 ? '#f97316' : '#eab308');
+
+        // Feed Item Card
+        const item = document.createElement('div');
+        item.style.background = 'rgba(255, 255, 255, 0.04)';
+        item.style.borderLeft = `3px solid ${magColor}`;
+        item.style.borderRadius = '6px';
+        item.style.padding = '8px 10px';
+        item.style.cursor = 'pointer';
+        item.style.transition = 'all 0.15s ease';
+        item.style.fontSize = '0.75rem';
+
+        const distText = eq.distance_km != null ? ` • ${eq.distance_km} km away` : '';
+        item.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+            <strong style="color: white; font-size: 0.8rem;">M ${eq.mag.toFixed(1)} — ${eq.place || 'Seismic Event'}</strong>
+            <span style="font-size: 0.65rem; background: ${magColor}25; color: ${magColor}; font-weight: 700; padding: 1px 5px; border-radius: 3px;">
+              ${mmi.alert ? mmi.alert.toUpperCase() : 'REVIEW'}
+            </span>
+          </div>
+          <div style="color: var(--text-muted); font-size: 0.68rem;">
+            Depth: ${eq.depth_km} km ${distText}
+          </div>
+          <div style="color: #fca5a5; font-size: 0.66rem; margin-top: 2px;">
+            Estimated Shaking: <strong>${mmi.label || 'Moderate'}</strong>
+          </div>
+        `;
+
+        item.onmouseenter = () => { item.style.background = 'rgba(255, 255, 255, 0.08)'; };
+        item.onmouseleave = () => { item.style.background = 'rgba(255, 255, 255, 0.04)'; };
+        item.onclick = () => {
+          map.flyTo({ center: [eq.lon, eq.lat], zoom: 11, pitch: 45, duration: 2000 });
+          showToast(`Focusing Epicenter: M ${eq.mag.toFixed(1)} at ${eq.place}`);
+        };
+        listEl.appendChild(item);
+
+        // Map Epicenter Marker with Pulsing Ring
+        const el = document.createElement('div');
+        el.className = 'quake-marker';
+        const markerSize = Math.min(48, Math.max(20, Math.round(eq.mag * 6)));
+        el.style.width = `${markerSize}px`;
+        el.style.height = `${markerSize}px`;
+        el.style.borderRadius = '50%';
+        el.style.background = `${magColor}35`;
+        el.style.border = `2px solid ${magColor}`;
+        el.style.boxShadow = `0 0 16px ${magColor}80`;
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.color = 'white';
+        el.style.fontSize = '10px';
+        el.style.fontWeight = '800';
+        el.style.cursor = 'pointer';
+        el.innerHTML = `M${eq.mag.toFixed(1)}`;
+        el.title = `${eq.title} (${eq.depth_km}km depth)`;
+
+        el.onclick = () => {
+          new maplibregl.Popup({ offset: [0, -10] })
+            .setLngLat([eq.lon, eq.lat])
+            .setHTML(`
+              <div class="popup-title" style="color: ${magColor};">🌋 ${eq.title}</div>
+              <div class="popup-sub">${eq.place || 'Seismic Center'} • Depth: ${eq.depth_km} km</div>
+              <div style="font-size: 0.75rem; margin-bottom: 8px;">
+                <div><strong>Magnitude:</strong> <span style="color: white; font-weight: 800;">${eq.mag} M</span></div>
+                <div><strong>Estimated Shaking:</strong> <span style="color: ${magColor}; font-weight: 700;">${mmi.label || 'Moderate'}</span></div>
+                <div><strong>Stairwell Risk:</strong> <span style="color: #fca5a5;">${mmi.stairwell_risk || 'Caution'}</span></div>
+                <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 4px;">${mmi.description || ''}</div>
+              </div>
+              ${eq.url ? `<a href="${eq.url}" target="_blank" style="font-size: 0.72rem; color: var(--cyan); text-decoration: none;">View Official USGS Record ↗</a>` : ''}
+            `)
+            .addTo(map);
+        };
+
+        const marker = new maplibregl.Marker({ element: el })
+          .setLngLat([eq.lon, eq.lat])
+          .addTo(map);
+        earthquakeMarkers.push(marker);
+      });
+    }
   </script>
 </body>
 </html>

@@ -38,6 +38,11 @@ if str(SRC_DIR) not in sys.path:
 
 from stage2_enrichment.reverse_geocode import ReverseGeocoder
 from stage2_enrichment.dem import get_dem_elevation
+from hazards import (
+    get_earthquake_hazard_data,
+    get_flood_hazard_data,
+    calculate_building_flood_impact,
+)
 
 DEFAULT_DEMO_DIR = ROOT_DIR / "data" / "processed" / "demo_tiles"
 DEFAULT_WEB_DIR = ROOT_DIR / "demo"
@@ -71,7 +76,7 @@ class SOSRequest(BaseModel):
     lat: float = Field(..., description="WGS84 latitude")
     lon: float = Field(..., description="WGS84 longitude")
     baro_floor: Optional[int] = Field(None, description="Optional phone barometer-estimated floor")
-    emergency_type: Optional[str] = Field("general", description="medical, fire, collapse, general")
+    emergency_type: Optional[str] = Field("general", description="medical, fire, collapse, flood, earthquake, general")
     notes: Optional[str] = Field(None, description="Optional short emergency note")
 
 
@@ -91,8 +96,10 @@ def seed_demo_incidents():
     now = time.time()
     seeds = [
         {"tile": "AOI_2_Vegas_img4174", "floor": 1, "type": "fire", "age_min": 4},
-        {"tile": "AOI_2_Vegas_img4059", "floor": 2, "type": "medical", "age_min": 19},
-        {"tile": "AOI_2_Vegas_img4906", "floor": 1, "type": "collapse", "age_min": 48},
+        {"tile": "AOI_2_Vegas_img4059", "floor": 2, "type": "flood", "age_min": 14},
+        {"tile": "AOI_2_Vegas_img4906", "floor": 3, "type": "earthquake", "age_min": 26},
+        {"tile": "AOI_2_Vegas_img4174", "floor": 2, "type": "medical", "age_min": 39},
+        {"tile": "AOI_2_Vegas_img4059", "floor": 1, "type": "collapse", "age_min": 51},
     ]
 
     for seed in seeds:
@@ -233,7 +240,7 @@ def register_sos(req: SOSRequest, request: Request):
     now = time.time()
 
     etype = (req.emergency_type or "general").lower()
-    if etype not in ["medical", "fire", "collapse", "general"]:
+    if etype not in ["medical", "fire", "collapse", "flood", "earthquake", "general"]:
         etype = "general"
 
     record = {
@@ -256,6 +263,34 @@ def register_sos(req: SOSRequest, request: Request):
         "receiver_path": f"/r/{inc_id}",
         **record,
     }
+
+
+@app.get("/api/hazards/earthquakes")
+def get_earthquakes(lat: Optional[float] = None, lon: Optional[float] = None, radius_km: float = 1500.0):
+    """Retrieve USGS live earthquakes and regional fault lines with MMI calculation."""
+    return get_earthquake_hazard_data(center_lat=lat, center_lon=lon, max_radius_km=radius_km)
+
+
+@app.get("/api/hazards/flood")
+def get_flood_info(lat: Optional[float] = None, lon: Optional[float] = None):
+    """Retrieve hydrological stations, floodplain zones, and inundation simulation parameters."""
+    return get_flood_hazard_data(center_lat=lat, center_lon=lon)
+
+
+@app.get("/api/hazards/flood/simulate")
+def simulate_building_flood(
+    dem_elevation_m: float,
+    building_height_m: float,
+    floors: int = 1,
+    surge_water_level_m: float = 527.0
+):
+    """Calculate structure submersion depth, safe dry upper floors, and evacuation guidance."""
+    return calculate_building_flood_impact(
+        dem_ground_m=dem_elevation_m,
+        building_height_m=building_height_m,
+        floors=floors,
+        surge_water_level_m=surge_water_level_m
+    )
 
 
 @app.get("/api/dem/elevation")

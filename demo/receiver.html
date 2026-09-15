@@ -297,6 +297,9 @@
       <p class="hud-sub" id="incidentAge">Querying digital twin index...</p>
     </div>
 
+    <!-- Tactical Hazard Advisory Banner -->
+    <div id="hudHazardBanner" style="display: none; padding: 10px 12px; border-radius: 8px; font-size: 0.76rem; line-height: 1.4; font-weight: 500;"></div>
+
     <!-- Metadata Grid -->
     <div class="meta-grid">
       <div class="meta-item">
@@ -484,6 +487,37 @@
         document.getElementById('demGround').textContent = groundElev;
         document.getElementById('demFloor').textContent = floorElev;
 
+        // Tactical Hazard Banner Updates
+        const hBanner = document.getElementById('hudHazardBanner');
+        const etype = (incidentData.emergency_type || '').toLowerCase();
+        if (etype === 'flood') {
+          hBanner.style.display = 'block';
+          hBanner.style.background = 'rgba(2, 132, 199, 0.25)';
+          hBanner.style.border = '1px solid #0284c7';
+          hBanner.style.color = '#38bdf8';
+          hBanner.innerHTML = '🌊 <strong>FLOOD INUNDATION ALERT:</strong> Ingress roads inundated. Ground floor ingress compromised. Direct rescue team with inflatable boat / high-clearance rig to Floor 2+ or roof.';
+        } else if (etype === 'earthquake') {
+          hBanner.style.display = 'block';
+          hBanner.style.background = 'rgba(239, 68, 68, 0.25)';
+          hBanner.style.border = '1px solid #ef4444';
+          hBanner.style.color = '#fca5a5';
+          hBanner.innerHTML = '🌋 <strong>SEISMIC SHAKING ADVISORY:</strong> Fault proximity ground motion detected. Unreinforced masonry failure risk. <strong>Do NOT use elevators or untested stairwells.</strong>';
+        } else if (etype === 'fire') {
+          hBanner.style.display = 'block';
+          hBanner.style.background = 'rgba(249, 115, 22, 0.25)';
+          hBanner.style.border = '1px solid #f97316';
+          hBanner.style.color = '#fdba74';
+          hBanner.innerHTML = '🔥 <strong>CONFLAGRATION THREAT:</strong> Smoke accumulation on upper levels. Maintain positive-pressure ventilation.';
+        } else if (etype === 'collapse') {
+          hBanner.style.display = 'block';
+          hBanner.style.background = 'rgba(234, 179, 8, 0.25)';
+          hBanner.style.border = '1px solid #eab308';
+          hBanner.style.color = '#fef08a';
+          hBanner.innerHTML = '🏚️ <strong>STRUCTURAL ENTRAPMENT:</strong> Shoring required before void exploration. Use acoustic listening probes.';
+        } else {
+          hBanner.style.display = 'none';
+        }
+
         // Navigation Link
         document.getElementById('btnDirections').href = `https://www.google.com/maps/dir/?api=1&destination=${incidentData.lat},${incidentData.lon}`;
 
@@ -604,10 +638,20 @@
             btn.style.transition = 'all 0.2s';
 
             if (isIncident) {
-              btn.style.background = 'rgba(239, 68, 68, 0.25)';
+              btn.style.background = 'rgba(239, 68, 68, 0.35)';
               btn.style.border = '1px solid #ef4444';
               btn.style.color = '#ef4444';
               btn.textContent = `🚨 L${f} (TARGET)`;
+            } else if (etype === 'flood' && f === 1) {
+              btn.style.background = 'rgba(2, 132, 199, 0.35)';
+              btn.style.border = '1px solid #0284c7';
+              btn.style.color = '#38bdf8';
+              btn.textContent = '🌊 L1 (FLOODED)';
+            } else if (etype === 'flood' && f > 1) {
+              btn.style.background = 'rgba(16, 185, 129, 0.2)';
+              btn.style.border = '1px solid #10b981';
+              btn.style.color = '#10b981';
+              btn.textContent = `🛡️ L${f} (DRY)`;
             } else if (f === 1) {
               btn.style.background = 'rgba(34, 211, 238, 0.15)';
               btn.style.border = '1px solid rgba(34, 211, 238, 0.4)';

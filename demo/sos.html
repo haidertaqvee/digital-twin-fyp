@@ -373,9 +373,17 @@
         <span class="hazard-icon">🔥</span>
         <span>Fire</span>
       </button>
+      <button class="hazard-btn" data-type="flood">
+        <span class="hazard-icon">🌊</span>
+        <span>Flood / Surge</span>
+      </button>
+      <button class="hazard-btn" data-type="earthquake">
+        <span class="hazard-icon">🌋</span>
+        <span>Earthquake</span>
+      </button>
       <button class="hazard-btn" data-type="collapse">
         <span class="hazard-icon">🏚️</span>
-        <span>Structural / Trap</span>
+        <span>Structural Trap</span>
       </button>
       <button class="hazard-btn" data-type="general">
         <span class="hazard-icon">⚠️</span>
@@ -425,7 +433,10 @@
   <div class="container" id="resultCard">
     <div class="res-badge">✓ REGISTERED ON DIGITAL TWIN</div>
     <div class="res-addr" id="resAddress">Sector H-12 / IST Campus, Islamabad</div>
-    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;" id="resType">Emergency Type: Medical</div>
+    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;" id="resType">Emergency Type: Medical</div>
+
+    <!-- Hazard Specific Safety Advisory -->
+    <div id="resHazardNotice" style="display: none; width: 100%; padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 0.78rem; line-height: 1.4;"></div>
 
     <div class="res-meta">
       <div><strong>Assigned Block:</strong> <span id="resBlock">Sector H-12</span></div>
@@ -572,6 +583,35 @@
         document.getElementById('resDem').textContent = data.dem_elevation_m != null ? `${data.dem_elevation_m.toFixed(1)} m` : '--';
         document.getElementById('resRoof').textContent = data.floor_elevation_m != null ? `${data.floor_elevation_m.toFixed(1)} m` : (data.dem_elevation_m != null ? `${(data.dem_elevation_m + 12).toFixed(1)} m` : '--');
         document.getElementById('resId').textContent = `#${data.incident_id}`;
+
+        const notice = document.getElementById('resHazardNotice');
+        if (data.emergency_type === 'flood') {
+          notice.style.display = 'block';
+          notice.style.background = 'rgba(2, 132, 199, 0.25)';
+          notice.style.border = '1px solid #0284c7';
+          notice.style.color = '#38bdf8';
+          notice.innerHTML = '🌊 <strong>FLOOD INUNDATION ALERT:</strong> Do NOT enter ground-floor or basement! Ascend to Floor 2+ or roof immediately. Boat rescue coordinates flagged.';
+        } else if (data.emergency_type === 'earthquake') {
+          notice.style.display = 'block';
+          notice.style.background = 'rgba(239, 68, 68, 0.25)';
+          notice.style.border = '1px solid #ef4444';
+          notice.style.color = '#fca5a5';
+          notice.innerHTML = '🌋 <strong>SEISMIC COLLAPSE ADVISORY:</strong> Stay clear of exterior masonry & facade glass. <strong>NEVER USE ELEVATORS.</strong> Verify stairwell shear integrity.';
+        } else if (data.emergency_type === 'fire') {
+          notice.style.display = 'block';
+          notice.style.background = 'rgba(249, 115, 22, 0.25)';
+          notice.style.border = '1px solid #f97316';
+          notice.style.color = '#fdba74';
+          notice.innerHTML = '🔥 <strong>FIRE HAZARD:</strong> Stay below thermal smoke layer. Block door cracks with damp materials if egress is compromised.';
+        } else if (data.emergency_type === 'collapse') {
+          notice.style.display = 'block';
+          notice.style.background = 'rgba(234, 179, 8, 0.25)';
+          notice.style.border = '1px solid #eab308';
+          notice.style.color = '#fef08a';
+          notice.innerHTML = '🏚️ <strong>STRUCTURAL ENTRAPMENT:</strong> Signal position by tapping rhythmically on concrete/pipes. Minimize movement to preserve air pocket.';
+        } else {
+          notice.style.display = 'none';
+        }
 
         shareUrl = data.share_url;
         document.getElementById('btnOpenReceiver').href = data.receiver_path;
