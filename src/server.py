@@ -179,6 +179,18 @@ def get_tile_geojson(tile_id: str):
         raise HTTPException(status_code=500, detail=f"Error reading tile: {e}")
 
 
+@app.get("/api/mesh/{tile_id}")
+def get_tile_3d_mesh(tile_id: str):
+    mesh_dir = ROOT_DIR / "data" / "processed" / "stage3_3d"
+    clean_id = tile_id.replace(".obj", "").replace("tile_", "")
+    if not clean_id.endswith("_buildings"):
+        clean_id += "_buildings"
+    path = mesh_dir / f"{clean_id}.obj"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"3D mesh for {tile_id} not found")
+    return FileResponse(path, media_type="text/plain", filename=f"{clean_id}.obj")
+
+
 @app.post("/api/sos")
 def register_sos(req: SOSRequest, request: Request):
     if geocoder is None:

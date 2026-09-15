@@ -8,24 +8,28 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" />
   
   <!-- MapLibre GL JS -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 
+  <!-- Three.js & OrbitControls for Volumetric 3D Building Inspector -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
   <style>
     :root {
       --bg: #070b14;
-      --bg-panel: rgba(13, 20, 36, 0.82);
-      --border: rgba(255, 255, 255, 0.08);
+      --bg-panel: rgba(13, 20, 36, 0.88);
+      --border: rgba(255, 255, 255, 0.1);
       --border-focus: rgba(34, 211, 238, 0.4);
       --text: #f1f5f9;
       --text-muted: #94a3b8;
       --cyan: #22d3ee;
-      --cyan-glow: rgba(34, 211, 238, 0.35);
+      --cyan-glow: rgba(34, 211, 238, 0.4);
       --sos-red: #ff3366;
-      --sos-glow: rgba(255, 51, 102, 0.45);
+      --sos-glow: rgba(255, 51, 102, 0.5);
       --amber: #fbbf24;
       --green: #34d399;
       --purple: #a855f7;
@@ -62,7 +66,7 @@
       -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--border);
       border-radius: 12px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.55);
     }
 
     /* Top Bar */
@@ -75,7 +79,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 20px;
+      padding: 10px 20px;
     }
 
     .brand {
@@ -104,7 +108,7 @@
     .brand-title {
       font-family: 'Space Grotesk', sans-serif;
       font-size: 1.25rem;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: -0.02em;
       display: flex;
       align-items: center;
@@ -112,7 +116,7 @@
     }
 
     .brand-sub {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -121,13 +125,42 @@
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+    }
+
+    /* 3D Height Scale Selector Bar */
+    .scale-selector {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .scale-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .scale-btn.active {
+      background: rgba(34, 211, 238, 0.2);
+      color: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
     }
 
     .btn {
-      padding: 8px 16px;
+      padding: 8px 14px;
       border-radius: 8px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
@@ -150,6 +183,16 @@
       transform: translateY(-1px);
     }
 
+    .btn-orbit {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-orbit:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
     .btn-sos {
       background: var(--sos-red);
       color: white;
@@ -165,22 +208,22 @@
     /* Left Floating Control Panel */
     .panel-left {
       position: absolute;
-      top: 90px;
+      top: 85px;
       left: 16px;
       width: 320px;
       z-index: 10;
       padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      max-height: calc(100vh - 120px);
+      gap: 12px;
+      max-height: calc(100vh - 110px);
       overflow-y: auto;
     }
 
     .panel-title {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 600;
+      font-size: 0.92rem;
+      font-weight: 700;
       color: var(--cyan);
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -211,7 +254,7 @@
     }
 
     .stat-label {
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       color: var(--text-muted);
       text-transform: uppercase;
       margin-top: 2px;
@@ -222,7 +265,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: 230px;
+      max-height: 200px;
       overflow-y: auto;
       padding-right: 4px;
     }
@@ -314,17 +357,17 @@
     .dot-med { background: #f59e0b; }
     .dot-high { background: #ef4444; }
 
-    /* MapLibre Popup Customization */
+    /* MapLibre Popup */
     .maplibregl-popup-content {
       background: var(--bg-panel) !important;
-      backdrop-filter: blur(20px) !important;
-      -webkit-backdrop-filter: blur(20px) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
       border: 1px solid var(--border) !important;
       border-radius: 12px !important;
       color: var(--text) !important;
       padding: 16px !important;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6) !important;
-      max-width: 300px !important;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7) !important;
+      max-width: 320px !important;
       font-family: 'Inter', sans-serif !important;
     }
 
@@ -336,14 +379,14 @@
 
     .popup-title {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 1rem;
+      font-size: 1.05rem;
       font-weight: 700;
       color: var(--cyan);
       margin-bottom: 4px;
     }
 
     .popup-sub {
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       color: var(--text-muted);
       margin-bottom: 10px;
       line-height: 1.3;
@@ -354,16 +397,32 @@
       grid-template-columns: 1fr 1fr;
       gap: 6px;
       font-size: 0.75rem;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 8px;
+      border-radius: 6px;
     }
 
-    .popup-badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 4px;
+    .popup-btn-3d {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(14, 165, 233, 0.3));
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.78rem;
       font-weight: 700;
-      font-size: 0.7rem;
-      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .popup-btn-3d:hover {
+      background: rgba(34, 211, 238, 0.35);
+      box-shadow: 0 0 12px var(--cyan-glow);
     }
 
     /* Pulsing Pin Markers */
@@ -378,7 +437,7 @@
       border-radius: 50%;
       background: var(--sos-red);
       border: 2px solid white;
-      box-shadow: 0 0 12px var(--sos-glow);
+      box-shadow: 0 0 14px var(--sos-glow);
       position: relative;
       z-index: 2;
     }
@@ -390,7 +449,7 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: rgba(255, 51, 102, 0.4);
+      background: rgba(255, 51, 102, 0.45);
       animation: ripple 1.6s infinite ease-out;
       z-index: 1;
     }
@@ -400,14 +459,8 @@
     .marker-core.aged { background: #3b82f6; }
 
     @keyframes ripple {
-      0% {
-        transform: scale(0.4);
-        opacity: 1;
-      }
-      100% {
-        transform: scale(1.6);
-        opacity: 0;
-      }
+      0% { transform: scale(0.4); opacity: 1; }
+      100% { transform: scale(1.6); opacity: 0; }
     }
 
     /* Radar Scanning Sweep Overlay for "Run AI Live" */
@@ -440,7 +493,86 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* Notification Toast */
+    /* 3D Holographic Model Inspector Modal */
+    #modal3D {
+      display: none;
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      width: 400px;
+      height: 460px;
+      z-index: 100;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .modal-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    #threeCanvas {
+      width: 100%;
+      height: 280px;
+      background: radial-gradient(circle at center, #131d33 0%, #070b14 85%);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .three-controls-hint {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .floor-badges-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .floor-tag {
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .floor-tag.highlight {
+      background: rgba(255, 51, 102, 0.25);
+      border-color: var(--sos-red);
+      color: #ff3366;
+      box-shadow: 0 0 10px var(--sos-glow);
+    }
+
+    /* Toast */
     #toast {
       position: absolute;
       bottom: 24px;
@@ -463,18 +595,6 @@
 
     #toast.show {
       transform: translateX(-50%) translateY(0);
-    }
-
-    /* Custom Scrollbars */
-    ::-webkit-scrollbar {
-      width: 5px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
     }
   </style>
 </head>
@@ -502,20 +622,34 @@
       </div>
     </div>
 
+    <!-- 3D Extrusion Height Scale Controls -->
     <div class="header-actions">
+      <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">3D Scale:</div>
+      <div class="scale-selector">
+        <button class="scale-btn" data-scale="1.0">1x Real (3m)</button>
+        <button class="scale-btn active" data-scale="2.5">2.5x Tactical</button>
+        <button class="scale-btn" data-scale="5.0">5x Tower</button>
+      </div>
+
+      <button class="btn btn-orbit" id="btnOrbitView">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        3D Orbit View
+      </button>
+
       <button class="btn btn-ai" id="btnRunAi">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="9"/>
-          <path d="M12 3v18M3 12h18"/>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>
         </svg>
         Run AI Live
       </button>
 
       <a href="/demo/sos.html" target="_blank" class="btn btn-sos">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
-        Trigger SOS (Mobile)
+        Trigger SOS
       </a>
     </div>
   </header>
@@ -524,7 +658,7 @@
   <div class="panel-left glass">
     <div class="panel-title">
       <span>Operational Twin</span>
-      <span style="font-size: 0.7rem; color: var(--green);" id="syncStatus">● ONLINE</span>
+      <span style="font-size: 0.7rem; color: var(--green);" id="syncStatus">● 3D SHADING ONLINE</span>
     </div>
 
     <!-- Quick Stats -->
@@ -547,8 +681,16 @@
       </select>
     </div>
 
+    <!-- Download 3D Mesh Link -->
+    <a id="btnDownloadMesh" href="/api/mesh/AOI_2_Vegas_img4174" download class="btn btn-orbit" style="font-size: 0.75rem; justify-content: center; padding: 6px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+      </svg>
+      Download Tile 3D Mesh (.OBJ)
+    </a>
+
     <!-- Live SOS Feed -->
-    <div class="panel-title" style="margin-top: 6px;">
+    <div class="panel-title" style="margin-top: 4px;">
       <span>Live Incident Pins</span>
       <span style="font-size: 0.7rem; color: var(--cyan);" id="incidentCountBadge">0 Active</span>
     </div>
@@ -577,7 +719,32 @@
     </div>
 
     <div style="font-size: 0.68rem; color: var(--text-muted); line-height: 1.3; border-top: 1px solid var(--border); padding-top: 8px;">
-      Zero PII: Incident pins expire automatically in 24 hours. MapLibre 3D + ESRI World Imagery.
+      MapLibre 3D Extrusion + Directional Sun Shading + Three.js Volumetric Inspection.
+    </div>
+  </div>
+
+  <!-- Interactive 3D Hologram Inspector Modal -->
+  <div id="modal3D" class="glass" style="display: none;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalStructureId">Structure 3D Model</div>
+        <div style="font-size: 0.7rem; color: var(--text-muted);" id="modalAddress">Address details</div>
+      </div>
+      <button class="modal-close" id="btnClose3D">&times;</button>
+    </div>
+
+    <div id="threeCanvas">
+      <div class="three-controls-hint">● Drag to rotate 3D • Scroll to zoom</div>
+    </div>
+
+    <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+      <span>Extruded Floors:</span>
+      <span id="modalFloorCount" style="color: var(--cyan); font-weight: 700;">2 Levels</span>
+    </div>
+    
+    <div class="floor-badges-row" id="modalFloorBadges">
+      <div class="floor-tag">Ground Level</div>
+      <div class="floor-tag">Floor 2</div>
     </div>
   </div>
 
@@ -592,13 +759,16 @@
 
   <script>
     const INITIAL_CENTER = [-115.2019, 36.1914];
-    const INITIAL_ZOOM = 16.2;
-    const INITIAL_PITCH = 58;
-    const INITIAL_BEARING = -20;
+    const INITIAL_ZOOM = 17.5; // Closer zoom so 3D buildings tower up visibly
+    const INITIAL_PITCH = 64;   // Steep pitch angle for unmistakable 3D perspective
+    const INITIAL_BEARING = -25;
 
     let map;
     let markers = [];
     let currentGeoJson = null;
+    let heightMultiplier = 2.5; // Tactical 3D scale by default so heights are prominent
+    let isOrbiting = false;
+    let orbitAnimId = null;
 
     // Initialize MapLibre GL
     map = new maplibregl.Map({
@@ -612,7 +782,7 @@
               'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
             ],
             tileSize: 256,
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            attribution: 'Esri World Imagery'
           }
         },
         layers: [
@@ -635,14 +805,61 @@
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
 
     map.on('load', async () => {
-      console.log('Map loaded, fetching tiles manifest...');
+      console.log('Map loaded, configuring 3D directional lighting...');
+      
+      // CRITICAL: Configure MapLibre 3D directional lighting so walls receive shadow shading
+      map.setLight({
+        anchor: 'viewport',
+        color: '#ffffff',
+        intensity: 0.70,
+        position: [1.5, 90, 80]
+      });
+
       await loadTileManifest();
       await loadBuildingsLayer('tile_AOI_2_Vegas_img4174.geojson');
       await refreshActiveIncidents();
       
-      // Auto-poll active SOS pins every 8 seconds
       setInterval(refreshActiveIncidents, 8000);
     });
+
+    // 3D Scale Selector Buttons
+    document.querySelectorAll('.scale-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        heightMultiplier = parseFloat(btn.dataset.scale);
+        
+        if (map.getLayer('buildings-3d')) {
+          map.setPaintProperty('buildings-3d', 'fill-extrusion-height', ['*', ['get', 'height_m'], heightMultiplier]);
+          showToast(`3D Extrusion Height Scale: ${heightMultiplier}x`);
+        }
+      });
+    });
+
+    // 3D Orbit Camera Button
+    document.getElementById('btnOrbitView').addEventListener('click', () => {
+      isOrbiting = !isOrbiting;
+      const btn = document.getElementById('btnOrbitView');
+      if (isOrbiting) {
+        btn.style.background = 'rgba(34, 211, 238, 0.25)';
+        btn.style.borderColor = 'var(--cyan)';
+        showToast('3D Cinematic Orbit Active');
+        startOrbit();
+      } else {
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        cancelAnimationFrame(orbitAnimId);
+      }
+    });
+
+    function startOrbit() {
+      function frame() {
+        if (!isOrbiting) return;
+        map.setBearing((map.getBearing() + 0.15) % 360);
+        orbitAnimId = requestAnimationFrame(frame);
+      }
+      orbitAnimId = requestAnimationFrame(frame);
+    }
 
     // Fetch and populate available tile list
     async function loadTileManifest() {
@@ -662,6 +879,8 @@
         }
         select.addEventListener('change', (e) => {
           loadBuildingsLayer(e.target.value);
+          const tname = e.target.value.replace('tile_', '').replace('.geojson', '');
+          document.getElementById('btnDownloadMesh').href = `/api/mesh/${tname}`;
         });
       } catch (err) {
         console.warn('Could not load tile manifest:', err);
@@ -683,7 +902,7 @@
             data: currentGeoJson
           });
 
-          // 3D fill-extrusion layer
+          // 3D fill-extrusion layer with vertical gradient and lighting enabled
           map.addLayer({
             id: 'buildings-3d',
             type: 'fill-extrusion',
@@ -697,28 +916,18 @@
                 'low', '#10b981',
                 '#38bdf8'
               ],
-              'fill-extrusion-height': ['get', 'height_m'],
+              'fill-extrusion-height': ['*', ['get', 'height_m'], heightMultiplier],
               'fill-extrusion-base': 0,
-              'fill-extrusion-opacity': 0.88
+              'fill-extrusion-opacity': 0.95,
+              'fill-extrusion-vertical-gradient': true
             }
           });
 
-          // Outline highlight layer
-          map.addLayer({
-            id: 'buildings-line',
-            type: 'line',
-            source: 'buildings-source',
-            paint: {
-              'line-color': '#ffffff',
-              'line-width': 1,
-              'line-opacity': 0.3
-            }
-          });
-
-          // Click popup on buildings
+          // Click popup on buildings with 3D Inspector Launcher
           map.on('click', 'buildings-3d', (e) => {
             if (!e.features || !e.features.length) return;
-            const props = e.features[0].properties;
+            const feat = e.features[0];
+            const props = feat.properties;
             const coords = e.lngLat;
             
             const vulnColor = props.vuln_class === 'high' ? '#ef4444' : (props.vuln_class === 'medium' ? '#f59e0b' : '#10b981');
@@ -732,11 +941,18 @@
                 <div><strong>Block:</strong> ${props.block_id || 'N/A'}</div>
                 <div><strong>Road dist:</strong> ${props.dist_road_m != null ? props.dist_road_m + 'm' : 'N/A'}</div>
               </div>
-              <div>
+              <div style="margin-bottom: 8px;">
                 <span class="popup-badge" style="background: ${vulnColor}25; color: ${vulnColor};">
-                  ${props.vuln_class || 'low'} vulnerability (${props.vuln_score || 0})
+                  ${props.vuln_class || 'low'} risk (${props.vuln_score || 0})
                 </span>
               </div>
+              <button class="popup-btn-3d" onclick="open3DInspector('${props.structure_id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+                Inspect 3D Volumetric Model
+              </button>
             `;
             
             new maplibregl.Popup({ offset: [0, -10] })
@@ -749,10 +965,9 @@
           map.on('mouseleave', 'buildings-3d', () => { map.getCanvas().style.cursor = ''; });
         }
 
-        // Fit bounds to the tile
         if (currentGeoJson && currentGeoJson.features && currentGeoJson.features.length > 0) {
           const firstCoord = currentGeoJson.features[0].geometry.coordinates[0][0];
-          map.flyTo({ center: firstCoord, zoom: 16.5, pitch: 58, bearing: -20, duration: 1800 });
+          map.flyTo({ center: firstCoord, zoom: 17.5, pitch: 64, bearing: -25, duration: 1800 });
         }
 
       } catch (err) {
@@ -769,7 +984,6 @@
         document.getElementById('statActiveSos').textContent = data.count;
         document.getElementById('incidentCountBadge').textContent = `${data.count} Active`;
 
-        // Clear existing markers
         markers.forEach(m => m.remove());
         markers = [];
 
@@ -782,7 +996,6 @@
         feed.innerHTML = '';
 
         data.incidents.forEach(inc => {
-          // Render Live Pin Marker on Map
           const el = document.createElement('div');
           el.className = 'incident-marker';
 
@@ -813,7 +1026,6 @@
 
           markers.push(marker);
 
-          // Render Item in Left Feed
           const card = document.createElement('div');
           card.className = `incident-card type-${inc.emergency_type}`;
           card.innerHTML = `
@@ -830,8 +1042,8 @@
           card.addEventListener('click', () => {
             map.flyTo({
               center: [inc.lon, inc.lat],
-              zoom: 18,
-              pitch: 65,
+              zoom: 18.2,
+              pitch: 68,
               bearing: 45,
               duration: 2000
             });
@@ -853,9 +1065,8 @@
 
       showToast('AI Inference Sweep Active: Updating building segmentation...');
 
-      // Animate camera sweep
       map.easeTo({
-        pitch: 62,
+        pitch: 68,
         bearing: map.getBearing() + 60,
         duration: 3000
       });
@@ -875,6 +1086,151 @@
         toast.classList.remove('show');
       }, 3500);
     }
+
+    // ==========================================
+    // Three.js Volumetric 3D Building Inspector
+    // ==========================================
+    let threeRenderer, threeScene, threeCamera, threeControls, buildingMeshGroup;
+
+    function initThree() {
+      const container = document.getElementById('threeCanvas');
+      threeScene = new THREE.Scene();
+      threeCamera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+      threeCamera.position.set(20, 25, 30);
+
+      threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      threeRenderer.setSize(container.clientWidth, container.clientHeight);
+      threeRenderer.setPixelRatio(window.devicePixelRatio);
+      threeRenderer.shadowMap.enabled = true;
+      container.appendChild(threeRenderer.domElement);
+
+      threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
+      threeControls.enableDamping = true;
+      threeControls.dampingFactor = 0.05;
+      threeControls.autoRotate = true;
+      threeControls.autoRotateSpeed = 2.0;
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      threeScene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0x00f0ff, 1.2);
+      dirLight.position.set(15, 30, 20);
+      dirLight.castShadow = true;
+      threeScene.add(dirLight);
+
+      const rimLight = new THREE.DirectionalLight(0xff3366, 0.8);
+      rimLight.position.set(-15, 10, -20);
+      threeScene.add(rimLight);
+
+      // Grid Ground
+      const grid = new THREE.GridHelper(50, 20, 0x22d3ee, 0x1e293b);
+      grid.position.y = -0.1;
+      threeScene.add(grid);
+
+      buildingMeshGroup = new THREE.Group();
+      threeScene.add(buildingMeshGroup);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        threeControls.update();
+        threeRenderer.render(threeScene, threeCamera);
+      }
+      animate();
+    }
+
+    window.open3DInspector = function(structureId) {
+      if (!currentGeoJson) return;
+      const feat = currentGeoJson.features.find(f => f.properties.structure_id === structureId);
+      if (!feat) return;
+
+      const modal = document.getElementById('modal3D');
+      modal.style.display = 'flex';
+
+      document.getElementById('modalStructureId').textContent = `${feat.properties.structure_id} (3D Volumetric Model)`;
+      document.getElementById('modalAddress').textContent = feat.properties.address || 'Address unassigned';
+      const floors = feat.properties.floors || 1;
+      document.getElementById('modalFloorCount').textContent = `${floors} Level${floors > 1 ? 's' : ''} (${feat.properties.height_m || 3}m)`;
+
+      const badgeRow = document.getElementById('modalFloorBadges');
+      badgeRow.innerHTML = '';
+      for (let i = 1; i <= floors; i++) {
+        const b = document.createElement('div');
+        b.className = 'floor-tag';
+        b.textContent = i === 1 ? 'Ground Floor' : `Floor ${i}`;
+        badgeRow.appendChild(b);
+      }
+
+      if (!threeRenderer) {
+        initThree();
+      }
+
+      // Build 3D multi-tier mesh
+      while (buildingMeshGroup.children.length > 0) {
+        buildingMeshGroup.remove(buildingMeshGroup.children[0]);
+      }
+
+      const coords = feat.geometry.coordinates[0];
+      const shape = new THREE.Shape();
+      
+      // Calculate centroid to center model
+      let cx = 0, cy = 0;
+      coords.forEach(pt => { cx += pt[0]; cy += pt[1]; });
+      cx /= coords.length;
+      cy /= coords.length;
+
+      // Scale to viewable units (~100,000 to convert degrees to metres)
+      const scale = 80000;
+      coords.forEach((pt, idx) => {
+        const x = (pt[0] - cx) * scale;
+        const y = (pt[1] - cy) * scale;
+        if (idx === 0) shape.moveTo(x, y);
+        else shape.lineTo(x, y);
+      });
+
+      const floorHeight = 4.0;
+      for (let fl = 0; fl < floors; fl++) {
+        const extrudeSettings = {
+          steps: 1,
+          depth: floorHeight - 0.3,
+          bevelEnabled: true,
+          bevelThickness: 0.15,
+          bevelSize: 0.15,
+          bevelSegments: 2
+        };
+
+        const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        geom.rotateX(Math.PI / 2);
+
+        const color = feat.properties.vuln_class === 'high' ? 0xef4444 : (feat.properties.vuln_class === 'medium' ? 0xf59e0b : 0x10b981);
+        const mat = new THREE.MeshStandardMaterial({
+          color: color,
+          roughness: 0.3,
+          metalness: 0.2,
+          transparent: true,
+          opacity: 0.9
+        });
+
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.position.y = fl * floorHeight;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+
+        // Wireframe edge highlight
+        const edges = new THREE.EdgesGeometry(geom);
+        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x22d3ee, linewidth: 1.5 }));
+        mesh.add(line);
+
+        buildingMeshGroup.add(mesh);
+      }
+
+      threeControls.reset();
+      threeCamera.position.set(18, 16, 22);
+    };
+
+    document.getElementById('btnClose3D').addEventListener('click', () => {
+      document.getElementById('modal3D').style.display = 'none';
+    });
   </script>
 </body>
 </html>

@@ -395,6 +395,14 @@
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
 
     map.on('load', async () => {
+      // Configure 3D directional lighting for building walls
+      map.setLight({
+        anchor: 'viewport',
+        color: '#ffffff',
+        intensity: 0.70,
+        position: [1.5, 90, 80]
+      });
+
       await loadIncident();
     });
 
@@ -477,12 +485,13 @@
               ['==', ['get', 'structure_id'], structureId], '#ff2a5f',
               '#38bdf8'
             ],
-            'fill-extrusion-height': ['get', 'height_m'],
+            'fill-extrusion-height': ['*', ['get', 'height_m'], 2.5],
             'fill-extrusion-base': 0,
+            'fill-extrusion-vertical-gradient': true,
             'fill-extrusion-opacity': [
               'case',
               ['==', ['get', 'structure_id'], structureId], 0.95,
-              0.4
+              0.55
             ]
           }
         });
