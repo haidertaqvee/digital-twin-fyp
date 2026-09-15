@@ -24,6 +24,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -54,6 +55,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Enable GZIP compression (drastically reduces GeoJSON payloads by ~75%)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # Enable CORS for local testing, LAN access, and PWA clients
 app.add_middleware(
     CORSMiddleware,
@@ -67,9 +71,11 @@ app.add_middleware(
 DEFAULT_WEB_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/demo", StaticFiles(directory=str(DEFAULT_WEB_DIR), html=True), name="demo")
 
-# State
+# State & Caches for sub-millisecond responses
 geocoder: Optional[ReverseGeocoder] = None
 incidents_db = {}  # incident_id -> dict
+_GEOJSON_CACHE = {}  # In-memory cached GeoJSON payloads
+_DEM_CACHE = {}      # In-memory cached DEM point lookups
 
 
 class SOSRequest(BaseModel):
@@ -132,6 +138,45 @@ def startup_event():
     print(f"Loading ReverseGeocoder from {demo_dir} ...")
     geocoder = ReverseGeocoder(demo_dir=demo_dir)
     print(f"ReverseGeocoder ready with {len(geocoder.gdf)} structures across {geocoder.gdf['tile'].nunique()} tiles.")
+
+    # High-performance in-memory cache pre-load
+    print("Pre-loading in-memory GeoJSON cache for fast response...")
+    all_path = demo_dir / "all_demo_buildings.geojson"
+    if all_path.exists():
+        try:
+            _GEOJSON_CACHE["all"] = json.loads(all_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"Warning: Failed to pre-cache all_demo_buildings.geojson: {e}")
+
+    pred_path = ROOT_DIR / "data" / "processed" / "test" / "vectors" / "buildings_predictions.geojson"
+    if pred_path.exists():
+        try:
+            _GEOJSON_CACHE["predicted_all"] = json.loads(pred_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"Warning: Failed to pre-cache buildings_predictions.geojson: {e}")
+
+    manifest_path = demo_dir / "_manifest.json"
+    if manifest_path.exists():
+        try:
+            _GEOJSON_CACHE["manifest"] = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    for f in demo_dir.glob("tile_*.geojson"):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+            _GEOJSON_CACHE[f.name] = data
+            _GEOJSON_CACHE[f.stem] = data
+        except Exception:
+            pass
+    print(f"GeoJSON In-Memory Cache ready with {len(_GEOJSON_CACHE)} entries.")
+
+    # Pre-warm USGS seismic hazard feed
+    try:
+        get_earthquake_hazard_data()
+    except Exception:
+        pass
+
     if not getattr(app.state, "no_seed", False):
         seed_demo_incidents()
         print(f"Pre-seeded {len(incidents_db)} demo incidents for testing.")
@@ -151,66 +196,93 @@ def health():
         "structures_indexed": len(geocoder.gdf) if geocoder else 0,
         "tiles_available": geocoder.gdf["tile"].nunique() if geocoder else 0,
         "active_incidents": len(incidents_db),
+        "cache_entries": len(_GEOJSON_CACHE),
     }
 
 
 @app.get("/api/tiles")
 def list_tiles():
+    if "manifest" in _GEOJSON_CACHE:
+        return _GEOJSON_CACHE["manifest"]
+
     demo_dir = getattr(app.state, "demo_dir", DEFAULT_DEMO_DIR)
     manifest_path = demo_dir / "_manifest.json"
     if manifest_path.exists():
         try:
-            return json.loads(manifest_path.read_text(encoding="utf-8"))
+            data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            _GEOJSON_CACHE["manifest"] = data
+            return data
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to read manifest: {e}")
 
     # Fallback if manifest is missing
     files = sorted(demo_dir.glob("tile_*.geojson"))
-    return {
+    res = {
         "sector": "7",
         "tiles": [{"tile": f.stem.replace("tile_", ""), "file": f.name} for f in files],
     }
+    _GEOJSON_CACHE["manifest"] = res
+    return res
 
 
 @app.get("/api/tile/{tile_id}")
 def get_tile_geojson(tile_id: str):
-    demo_dir = getattr(app.state, "demo_dir", DEFAULT_DEMO_DIR)
     if tile_id in ["all", "tile_all", "all.geojson", "tile_all.geojson"]:
+        if "all" in _GEOJSON_CACHE:
+            return _GEOJSON_CACHE["all"]
+        demo_dir = getattr(app.state, "demo_dir", DEFAULT_DEMO_DIR)
         all_path = demo_dir / "all_demo_buildings.geojson"
         if all_path.exists():
-            return json.loads(all_path.read_text(encoding="utf-8"))
+            data = json.loads(all_path.read_text(encoding="utf-8"))
+            _GEOJSON_CACHE["all"] = data
+            return data
 
     clean_id = tile_id if tile_id.startswith("tile_") else f"tile_{tile_id}"
     if not clean_id.endswith(".geojson"):
         clean_id += ".geojson"
+
+    if clean_id in _GEOJSON_CACHE:
+        return _GEOJSON_CACHE[clean_id]
+
+    demo_dir = getattr(app.state, "demo_dir", DEFAULT_DEMO_DIR)
     path = demo_dir / clean_id
     if not path.exists():
         raise HTTPException(status_code=404, detail=f"Tile {tile_id} not found")
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
+        _GEOJSON_CACHE[clean_id] = data
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading tile: {e}")
 
 
 @app.get("/api/buildings/all")
 def get_all_demo_buildings():
+    if "all" in _GEOJSON_CACHE:
+        return _GEOJSON_CACHE["all"]
     demo_dir = getattr(app.state, "demo_dir", DEFAULT_DEMO_DIR)
     all_path = demo_dir / "all_demo_buildings.geojson"
     if not all_path.exists():
         raise HTTPException(status_code=404, detail="all_demo_buildings.geojson not found")
     try:
-        return json.loads(all_path.read_text(encoding="utf-8"))
+        data = json.loads(all_path.read_text(encoding="utf-8"))
+        _GEOJSON_CACHE["all"] = data
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading all buildings: {e}")
 
 
 @app.get("/api/buildings/predicted")
 def get_all_predicted_buildings():
+    if "predicted_all" in _GEOJSON_CACHE:
+        return _GEOJSON_CACHE["predicted_all"]
     pred_path = ROOT_DIR / "data" / "processed" / "test" / "vectors" / "buildings_predictions.geojson"
     if not pred_path.exists():
         raise HTTPException(status_code=404, detail="buildings_predictions.geojson not found")
     try:
-        return json.loads(pred_path.read_text(encoding="utf-8"))
+        data = json.loads(pred_path.read_text(encoding="utf-8"))
+        _GEOJSON_CACHE["predicted_all"] = data
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading predicted buildings: {e}")
 
@@ -296,7 +368,13 @@ def simulate_building_flood(
 @app.get("/api/dem/elevation")
 def get_dem_point(lat: float, lon: float):
     """Query ground elevation in meters above sea level from AWS Open Data Terrarium DEM."""
-    elev = get_dem_elevation(lat, lon)
+    cache_key = f"{round(lat, 5)}_{round(lon, 5)}"
+    if cache_key in _DEM_CACHE:
+        elev = _DEM_CACHE[cache_key]
+    else:
+        elev = get_dem_elevation(lat, lon)
+        _DEM_CACHE[cache_key] = elev
+
     return {
         "lat": lat,
         "lon": lon,

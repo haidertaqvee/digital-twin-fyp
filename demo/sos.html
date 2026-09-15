@@ -418,8 +418,12 @@
     <!-- GPS Coordinate Fix Card -->
     <div class="gps-box">
       <div class="gps-info">
-        <div style="font-weight: 600; color: var(--text);">GPS Location Fix</div>
-        <div style="color: var(--text-muted);" id="gpsStatus">Acquiring device position...</div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+          <span style="font-weight: 700; color: var(--text);">GPS SATELLITE FIX</span>
+          <span id="gpsCertBadge" style="font-size: 0.65rem; background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 1px 6px; border-radius: 4px; font-weight: 700;">RTK READY</span>
+        </div>
+        <div style="color: var(--text-muted); font-family: 'Space Grotesk', monospace; font-size: 0.74rem;" id="gpsStatus">Acquiring device position...</div>
         <div style="color: var(--cyan); font-size: 0.72rem; margin-top: 2px;" id="demStatus">DEM Ground: ~508m MSL</div>
       </div>
       <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -452,13 +456,18 @@
       <span>→</span>
     </a>
 
-
     <button id="btnShareLink" class="btn-action btn-secondary">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
         <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
       </svg>
       <span>Share Rescue Link</span>
+    </button>
+
+    <!-- Acoustic Rescue Locator Beacon Toggle -->
+    <button id="btnAcousticChirp" class="btn-action btn-secondary" style="border-color: rgba(34, 211, 238, 0.4); color: var(--cyan);">
+      <span id="acousticIcon">🔊</span>
+      <span id="acousticText">Start Audio Rescue Beacon (Chirp)</span>
     </button>
   </div>
 
@@ -478,6 +487,7 @@
     // Hazard selector buttons
     document.querySelectorAll('.hazard-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (navigator.vibrate) navigator.vibrate(25);
         document.querySelectorAll('.hazard-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         selectedHazard = btn.dataset.type;
@@ -487,6 +497,7 @@
     // Floor pills
     document.querySelectorAll('.floor-pill').forEach(pill => {
       pill.addEventListener('click', () => {
+        if (navigator.vibrate) navigator.vibrate(25);
         document.querySelectorAll('.floor-pill').forEach(p => p.classList.remove('active'));
         pill.classList.add('active');
         selectedFloor = parseInt(pill.dataset.floor, 10);
@@ -549,6 +560,7 @@
 
     // Trigger SOS
     document.getElementById('btnSos').addEventListener('click', async () => {
+      if (navigator.vibrate) navigator.vibrate([60, 40, 80]);
       const btn = document.getElementById('btnSos');
       btn.disabled = true;
       btn.innerHTML = '<span class="orb-icon">⏳</span><span class="orb-text">MATCHING...</span>';
@@ -569,6 +581,7 @@
 
         if (!res.ok) throw new Error('Failed to register SOS');
         const data = await res.json();
+        if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 200]);
 
         // Show result card
         document.getElementById('mainFlow').style.display = 'none';
@@ -642,6 +655,77 @@
         alert('Rescue link copied to clipboard: ' + shareUrl);
       }
     });
+
+    // Tactical Acoustic Rescue Locator Beacon (Web Audio API)
+    let audioCtx = null;
+    let chirpTimer = null;
+    let isChirping = false;
+
+    function playRescueChirp() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        // High-pitch dual-tone sweep: 880Hz to 1320Hz
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(1320, now + 0.15);
+        osc.frequency.setValueAtTime(1320, now + 0.25);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.40);
+
+        // Gain envelope: pulse in and decay
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.35, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.50);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.55);
+      } catch (e) {
+        console.warn('Audio beacon error:', e);
+      }
+    }
+
+    function toggleAcousticBeacon() {
+      isChirping = !isChirping;
+      const btn = document.getElementById('btnAcousticChirp');
+      const icon = document.getElementById('acousticIcon');
+      const text = document.getElementById('acousticText');
+
+      if (isChirping) {
+        if (btn) {
+          btn.style.background = 'rgba(239, 68, 68, 0.25)';
+          btn.style.borderColor = 'var(--sos)';
+          btn.style.color = '#ff527b';
+        }
+        if (icon) icon.textContent = '🚨';
+        if (text) text.textContent = 'Audio Beacon Active (Pulsing Chirp)';
+        playRescueChirp();
+        chirpTimer = setInterval(playRescueChirp, 2200);
+      } else {
+        if (btn) {
+          btn.style.background = '';
+          btn.style.borderColor = 'rgba(34, 211, 238, 0.4)';
+          btn.style.color = 'var(--cyan)';
+        }
+        if (icon) icon.textContent = '🔊';
+        if (text) text.textContent = 'Start Audio Rescue Beacon (Chirp)';
+        if (chirpTimer) clearInterval(chirpTimer);
+        chirpTimer = null;
+      }
+    }
+
+    document.getElementById('btnAcousticChirp')?.addEventListener('click', toggleAcousticBeacon);
   </script>
 </body>
 </html>

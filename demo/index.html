@@ -357,6 +357,48 @@
     .dot-med { background: #f59e0b; }
     .dot-high { background: #ef4444; }
 
+    /* Vulnerability Map Filter Chips */
+    .vuln-chip {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .vuln-chip:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .vuln-chip.active {
+      background: rgba(34, 211, 238, 0.2);
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    /* 3D Studio Vision Mode Buttons */
+    .vision-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 5px 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .vision-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .vision-btn.active {
+      background: rgba(34, 211, 238, 0.2);
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+
     /* MapLibre Popup */
     .maplibregl-popup-content {
       background: var(--bg-panel) !important;
@@ -659,6 +701,64 @@
       gap: 10px;
     }
 
+    /* Mission Control Enhancements */
+    .mission-clock {
+      font-family: 'Space Grotesk', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--cyan);
+      background: rgba(0, 0, 0, 0.45);
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.04em;
+    }
+
+    .live-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: blink 1.2s infinite alternate;
+    }
+
+    .badge-counter {
+      font-size: 0.65rem;
+      background: rgba(0,0,0,0.5);
+      padding: 1px 6px;
+      border-radius: 10px;
+      margin-left: 4px;
+      font-weight: 800;
+    }
+
+    /* Vulnerability Chips */
+    .vuln-chip {
+      padding: 4px 6px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+    }
+
+    .vuln-chip:hover {
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .vuln-chip.active {
+      background: rgba(34, 211, 238, 0.2);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+
     #toast.show {
       transform: translateX(-50%) translateY(0);
     }
@@ -686,13 +786,26 @@
         <div class="brand-title">TERRATWIN <span style="color: var(--sos-red);">SOS</span></div>
         <div class="brand-sub">Multi-Hazard Digital Twin & Rescue System</div>
       </div>
+
+      <!-- Digital Mission Clock -->
+      <div class="mission-clock" id="missionClock" title="Universal Mission Telemetry Clock">
+        <div class="live-pulse-dot"></div>
+        <span id="clockUtc">--:--:-- UTC</span>
+        <span style="color: rgba(255,255,255,0.25);">|</span>
+        <span id="clockPkt" style="color: #7dd3fc;">--:--:-- PKT</span>
+      </div>
     </div>
 
     <!-- 3D Extrusion Height Scale Controls -->
     <div class="header-actions">
-      <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">3D Scale:</div>
+      <!-- Location Switcher -->
+      <div class="scale-selector" style="background: rgba(0,0,0,0.35); border-color: rgba(34, 211, 238, 0.3);">
+        <button class="scale-btn" id="hdrPresetISB" title="Fly to Islamabad (IST Campus)">📍 Islamabad</button>
+        <button class="scale-btn active" id="hdrPresetVegas" title="Fly to Las Vegas (Sector 7 AI Twin)">📍 Vegas S7</button>
+      </div>
+
       <div class="scale-selector">
-        <button class="scale-btn" data-scale="1.0">1x Real (3m)</button>
+        <button class="scale-btn" data-scale="1.0">1x Real</button>
         <button class="scale-btn active" data-scale="2.5">2.5x Tactical</button>
         <button class="scale-btn" data-scale="5.0">5x Tower</button>
       </div>
@@ -729,25 +842,27 @@
       <button class="btn btn-orbit" id="btnFloodSim" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);" title="Open 3D Flood Inundation Simulator">
         <span style="font-size: 0.95rem;">🌊</span>
         Flood Sim
+        <span class="badge-counter" id="hdrFloodBadge" style="color: #38bdf8;">0m</span>
       </button>
 
       <button class="btn btn-orbit" id="btnEarthquakeLayer" style="color: #f87171; border-color: rgba(248, 113, 113, 0.4);" title="View Live Earthquakes & Tectonic Faults">
         <span style="font-size: 0.95rem;">🌋</span>
         Earthquakes
+        <span class="badge-counter" id="hdrQuakeBadge" style="color: #f87171;">Live</span>
       </button>
 
       <button class="btn btn-orbit" id="btnOrbitView">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
         </svg>
-        3D Orbit View
+        3D Orbit
       </button>
 
       <button class="btn btn-ai" id="btnRunAi">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>
         </svg>
-        Run AI Live
+        Run AI
       </button>
 
       <a href="/demo/sos.html" target="_blank" class="btn btn-sos">
@@ -764,6 +879,13 @@
     <div class="panel-title">
       <span>Operational Twin</span>
       <span style="font-size: 0.7rem; color: var(--green);" id="syncStatus">● 3D SHADING ONLINE</span>
+    </div>
+
+    <!-- Structure Quick-Search Bar -->
+    <div style="display: flex; align-items: center; background: rgba(0,0,0,0.45); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; gap: 8px;">
+      <span style="font-size: 0.85rem; color: var(--cyan);">🔍</span>
+      <input type="text" id="structureSearchInput" placeholder="Search building ID, street, or IST..." style="background: transparent; border: none; outline: none; color: white; font-size: 0.75rem; width: 100%; font-family: inherit;">
+      <button id="btnStructureSearch" style="background: rgba(34, 211, 238, 0.15); border: 1px solid var(--border-focus); color: var(--cyan); border-radius: 4px; padding: 3px 8px; font-size: 0.68rem; font-weight: 700; cursor: pointer;">FIND</button>
     </div>
 
     <!-- Quick Stats -->
@@ -835,9 +957,20 @@
       </div>
     </div>
 
-    <!-- Vulnerability Legend -->
+    <!-- Vulnerability Legend & 1-Click Map Filter -->
     <div class="legend">
-      <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">Vulnerability Scoring</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">
+        <span>Vulnerability Scoring</span>
+        <span style="font-size: 0.65rem; color: var(--cyan); letter-spacing: 0.03em;">Filter 3D Map</span>
+      </div>
+      
+      <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+        <button class="vuln-chip active" data-vuln="all" style="flex: 1; text-align: center;">All</button>
+        <button class="vuln-chip" data-vuln="low" style="flex: 1; text-align: center; color: #10b981;">🟢 Low</button>
+        <button class="vuln-chip" data-vuln="medium" style="flex: 1; text-align: center; color: #f59e0b;">🟡 Med</button>
+        <button class="vuln-chip" data-vuln="high" style="flex: 1; text-align: center; color: #ef4444;">🔴 High</button>
+      </div>
+
       <div class="legend-row">
         <div class="legend-key"><div class="dot dot-low"></div> Low Risk (&lt; 0.33)</div>
         <span id="countLow" style="color: var(--text-muted); font-size: 0.72rem;">431</span>
@@ -875,6 +1008,13 @@
       <span>Extruded Floors:</span>
       <span id="modalFloorCount" style="color: var(--cyan); font-weight: 700;">2 Levels</span>
     </div>
+
+    <!-- 3D Vision Modes Switcher -->
+    <div style="display: flex; gap: 4px; margin: 4px 0 6px 0;">
+      <button class="vision-btn active" id="btnVisionNormal" style="flex: 1; text-align: center;">Standard 3D</button>
+      <button class="vision-btn" id="btnVisionThermal" style="flex: 1; text-align: center; color: #ff3366;">🔥 FLIR Thermal</button>
+      <button class="vision-btn" id="btnVisionXray" style="flex: 1; text-align: center; color: var(--cyan);">📐 X-Ray Wire</button>
+    </div>
     
     <div style="display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: var(--text-muted); margin: 2px 0;">
       <span>Explode Slices:</span>
@@ -901,7 +1041,7 @@
     </div>
 
     <!-- Surge Slider Control -->
-    <div style="margin-bottom: 14px;">
+    <div style="margin-bottom: 10px;">
       <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 6px;">
         <span style="font-weight: 600; color: var(--text);">Water Level Surge:</span>
         <span id="floodSurgeVal" style="font-weight: 800; color: #38bdf8; font-family: 'Space Grotesk', monospace;">+0.0 m (Dry Ground)</span>
@@ -914,8 +1054,37 @@
       </div>
     </div>
 
+    <!-- Hydraulic Water Stage Tube Meter Visualizer -->
+    <div style="display: flex; gap: 12px; align-items: center; background: rgba(0,0,0,0.35); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+      <!-- Vertical Gauge Column -->
+      <div style="position: relative; width: 32px; height: 96px; background: rgba(15, 23, 42, 0.9); border: 1.5px solid rgba(56, 189, 248, 0.5); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column-reverse; box-shadow: inset 0 0 10px rgba(0,0,0,0.9);">
+        <div id="hydroWaterColumn" style="width: 100%; height: 0%; background: linear-gradient(to top, #0284c7, #38bdf8); transition: height 0.15s ease-out; box-shadow: 0 0 15px rgba(56, 189, 248, 0.8); position: relative;">
+          <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #e0f2fe; box-shadow: 0 0 6px white;"></div>
+        </div>
+      </div>
+      <!-- Graduated Marks -->
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; height: 96px; font-size: 0.68rem;">
+        <div style="display: flex; justify-content: space-between; color: #f87171;">
+          <span>+10m Deluge</span>
+          <span style="font-weight: 700;">Floors 1-3 Inundated</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; color: #fbbf24;">
+          <span>+3.5m Basin</span>
+          <span style="font-weight: 700;">Ground Level Submerged</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; color: #38bdf8;">
+          <span>+1.5m Flash</span>
+          <span style="font-weight: 700;">Road Drainage Overflow</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; color: #34d399;">
+          <span>0.0m Normal</span>
+          <span style="font-weight: 700;">Ground Access Clear</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Scenario Presets -->
-    <div style="margin-bottom: 14px;">
+    <div style="margin-bottom: 12px;">
       <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">Preset Surge Scenarios:</div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
         <button class="btn btn-orbit flood-preset-btn" data-surge="1.5" style="font-size: 0.72rem; padding: 6px 8px; justify-content: center;">
@@ -972,6 +1141,32 @@
         </div>
       </div>
       <button id="btnCloseEarthquake" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.3rem; cursor: pointer;">&times;</button>
+    </div>
+
+    <!-- MMI Shakemap Intensity Scale Bar -->
+    <div style="margin-bottom: 12px; background: rgba(0,0,0,0.35); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;">
+      <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">
+        <span>Modified Mercalli Scale (MMI)</span>
+        <span id="activeMmiLabel" style="color: #fca5a5;">I to X Shaking</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(10, 1fr); height: 9px; border-radius: 4px; overflow: hidden; gap: 1px;">
+        <div style="background: #10b981;" title="MMI I-II: Weak"></div>
+        <div style="background: #34d399;" title="MMI III: Slight"></div>
+        <div style="background: #a3e635;" title="MMI IV: Moderate"></div>
+        <div style="background: #facc15;" title="MMI V: Strong"></div>
+        <div style="background: #fbbf24;" title="MMI VI: Very Strong"></div>
+        <div style="background: #f97316;" title="MMI VII: Severe"></div>
+        <div style="background: #ea580c;" title="MMI VIII: Destructive"></div>
+        <div style="background: #ef4444;" title="MMI IX: Violent"></div>
+        <div style="background: #b91c1c;" title="MMI X: Extreme"></div>
+        <div style="background: #7f1d1d;" title="MMI XI-XII: Cataclysmic"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.62rem; color: var(--text-muted); margin-top: 3px;">
+        <span>I Weak</span>
+        <span>IV Felt</span>
+        <span>VII Damage</span>
+        <span>X Collapse</span>
+      </div>
     </div>
 
     <!-- Fault Line Overlay Toggles -->
@@ -1285,33 +1480,147 @@
       refreshMultiFloorLayers();
     });
 
+    // Mission Control UTC & PKT Clock Update
+    function updateMissionClock() {
+      const now = new Date();
+      const utc = now.toISOString().slice(11, 19) + ' UTC';
+      const pktDate = new Date(now.getTime() + 5 * 3600 * 1000);
+      const pkt = pktDate.toISOString().slice(11, 19) + ' PKT';
+      const elUtc = document.getElementById('clockUtc');
+      const elPkt = document.getElementById('clockPkt');
+      if (elUtc) elUtc.textContent = utc;
+      if (elPkt) elPkt.textContent = pkt;
+    }
+    setInterval(updateMissionClock, 1000);
+    updateMissionClock();
+
     // Location Presets (Islamabad IST Campus vs Las Vegas Sector 7)
-    document.getElementById('btnPresetISB').addEventListener('click', () => {
-      map.flyTo({
-        center: [73.1761, 33.5198],
-        zoom: 17.2,
-        pitch: 66,
-        bearing: -15,
-        duration: 2500
+    function activateLocation(loc) {
+      const hdrISB = document.getElementById('hdrPresetISB');
+      const hdrVegas = document.getElementById('hdrPresetVegas');
+
+      if (loc === 'isb') {
+        if (hdrISB) hdrISB.classList.add('active');
+        if (hdrVegas) hdrVegas.classList.remove('active');
+        map.flyTo({
+          center: [73.1761, 33.5198],
+          zoom: 17.2,
+          pitch: 66,
+          bearing: -15,
+          duration: 2500
+        });
+        showToast('Navigated to Institute of Space Technology (IST Campus, Islamabad)');
+      } else {
+        if (hdrVegas) hdrVegas.classList.add('active');
+        if (hdrISB) hdrISB.classList.remove('active');
+        map.flyTo({
+          center: [-115.2019, 36.1914],
+          zoom: 16.6,
+          pitch: 65,
+          bearing: -25,
+          duration: 2500
+        });
+        showToast('Navigated to Las Vegas Sector 7 AI Twin');
+      }
+    }
+
+    document.getElementById('btnPresetISB')?.addEventListener('click', () => activateLocation('isb'));
+    document.getElementById('btnPresetVegas')?.addEventListener('click', () => activateLocation('vegas'));
+    document.getElementById('hdrPresetISB')?.addEventListener('click', () => activateLocation('isb'));
+    document.getElementById('hdrPresetVegas')?.addEventListener('click', () => activateLocation('vegas'));
+
+    // Structure Quick-Search
+    function executeStructureSearch() {
+      const input = document.getElementById('structureSearchInput');
+      if (!input) return;
+      const q = input.value.trim().toLowerCase();
+      if (!q) return;
+
+      if (q.includes('ist') || q.includes('space') || q.includes('islamabad')) {
+        activateLocation('isb');
+        showToast('Focusing on IST Campus, Islamabad...');
+        return;
+      }
+
+      if (!rawBuildingsGeoJson || !rawBuildingsGeoJson.features) {
+        showToast('Buildings data not loaded yet. Please wait.');
+        return;
+      }
+
+      const match = rawBuildingsGeoJson.features.find(f => {
+        const p = f.properties || {};
+        const sid = String(p.structure_id || '').toLowerCase();
+        const addr = String(p.address || '').toLowerCase();
+        return sid.includes(q) || addr.includes(q);
       });
-      showToast('Navigated to Institute of Space Technology (IST Campus, Islamabad)');
+
+      if (match) {
+        const coords = match.geometry.type === 'Polygon' ? match.geometry.coordinates[0][0] : match.geometry.coordinates[0][0][0];
+        const p = match.properties || {};
+        const sid = p.structure_id;
+        const totalFloors = Math.max(1, parseInt(p.floors || p.levels || 1, 10));
+        const height = parseFloat(p.height_m || (totalFloors * 3.0));
+        const elev = p.dem_elevation_m || 685.0;
+
+        map.flyTo({
+          center: coords,
+          zoom: 18.2,
+          pitch: 66,
+          bearing: -20,
+          duration: 2000
+        });
+
+        selectedFloorInfo = { structure_id: sid, floor_num: 1 };
+        refreshMultiFloorLayers();
+
+        setTimeout(() => {
+          renderBuildingPopup({ lng: coords[0], lat: coords[1] }, sid, 1, totalFloors, height, elev, p);
+        }, 1500);
+
+        showToast(`Structure Located: ${sid} (${p.address || 'Sector 7'})`);
+      } else {
+        showToast(`Structure "${q}" not found in current sector layer.`);
+      }
+    }
+
+    document.getElementById('btnStructureSearch')?.addEventListener('click', executeStructureSearch);
+    document.getElementById('structureSearchInput')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') executeStructureSearch();
     });
 
-    document.getElementById('btnPresetVegas').addEventListener('click', () => {
-      map.flyTo({
-        center: [-115.2019, 36.1914],
-        zoom: 16.6,
-        pitch: 65,
-        bearing: -25,
-        duration: 2500
+    // Vulnerability 1-Click Map Filter Chips
+    document.querySelectorAll('.vuln-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.vuln-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        const filterVal = chip.dataset.vuln;
+
+        if (map.getLayer('buildings-floors-3d')) {
+          if (filterVal === 'all') {
+            map.setFilter('buildings-floors-3d', ['==', ['get', 'feature_type'], 'floor']);
+            map.setFilter('buildings-floor-slabs-3d', ['==', ['get', 'feature_type'], 'slab']);
+            showToast('3D Map: Showing All Risk Profiles');
+          } else {
+            map.setFilter('buildings-floors-3d', [
+              'all',
+              ['==', ['get', 'feature_type'], 'floor'],
+              ['==', ['get', 'vuln_class'], filterVal]
+            ]);
+            map.setFilter('buildings-floor-slabs-3d', [
+              'all',
+              ['==', ['get', 'feature_type'], 'slab'],
+              ['==', ['get', 'vuln_class'], filterVal]
+            ]);
+            showToast(`3D Map: Filtered to ${filterVal.toUpperCase()} Risk Structures`);
+          }
+        }
       });
-      showToast('Navigated to Las Vegas Sector 7 AI Twin');
     });
 
     // 3D Scale Selector Buttons
-    document.querySelectorAll('.scale-btn').forEach(btn => {
+    document.querySelectorAll('.scale-selector .scale-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.scale-selector .scale-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         heightMultiplier = parseFloat(btn.dataset.scale);
         
@@ -2118,7 +2427,7 @@
         });
         const mesh = new THREE.Mesh(geom, mat);
         mesh.position.y = fl * floorHeight + 0.35;
-        mesh.userData = { isSlab: false, floorIndex: fl, floorNum: fl + 1, originalColor: baseColor };
+        mesh.userData = { isSlab: false, floorIndex: fl, floorNum: fl + 1, originalColor: baseColor, totalFloors: floors };
 
         // Wireframe edge highlight
         const edges = new THREE.EdgesGeometry(geom);
@@ -2127,6 +2436,9 @@
 
         buildingMeshGroup.add(mesh);
       }
+
+      // Reset Vision Mode to standard
+      setThreeVisionMode('normal');
 
       // Slider listener for dynamic vertical floor explosion
       slider.oninput = (e) => {
@@ -2152,6 +2464,55 @@
     document.getElementById('btnClose3D').addEventListener('click', () => {
       document.getElementById('modal3D').style.display = 'none';
     });
+
+    // 3D Studio Vision Modes (Normal / FLIR Thermal / X-Ray Wireframe)
+    let currentThreeVisionMode = 'normal';
+
+    function setThreeVisionMode(mode) {
+      currentThreeVisionMode = mode;
+      ['btnVisionNormal', 'btnVisionThermal', 'btnVisionXray'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.remove('active');
+      });
+      if (mode === 'normal') document.getElementById('btnVisionNormal')?.classList.add('active');
+      if (mode === 'thermal') document.getElementById('btnVisionThermal')?.classList.add('active');
+      if (mode === 'xray') document.getElementById('btnVisionXray')?.classList.add('active');
+
+      if (!buildingMeshGroup) return;
+
+      buildingMeshGroup.children.forEach(child => {
+        if (!child.userData || child.userData.isSlab) return;
+        const fl = child.userData.floorIndex || 0;
+
+        if (mode === 'normal') {
+          child.material.wireframe = false;
+          child.material.color.setHex(child.userData.originalColor || 0x10b981);
+          child.material.emissive.setHex(0x000000);
+          child.material.emissiveIntensity = 0.0;
+          child.material.opacity = 0.90;
+        } else if (mode === 'thermal') {
+          // FLIR Infrared palette: gradient from cool blue/magenta on ground to hot red/yellow near top/vents
+          child.material.wireframe = false;
+          const thermalColors = [0x3b82f6, 0x8b5cf6, 0xec4899, 0xef4444, 0xfacc15];
+          const colorHex = thermalColors[Math.min(thermalColors.length - 1, fl)];
+          child.material.color.setHex(colorHex);
+          child.material.emissive.setHex(colorHex);
+          child.material.emissiveIntensity = 0.35;
+          child.material.opacity = 0.92;
+        } else if (mode === 'xray') {
+          // Architectural X-Ray Wireframe Mode
+          child.material.wireframe = true;
+          child.material.color.setHex(0x00f0ff);
+          child.material.emissive.setHex(0x003344);
+          child.material.emissiveIntensity = 0.5;
+          child.material.opacity = 0.85;
+        }
+      });
+    }
+
+    document.getElementById('btnVisionNormal')?.addEventListener('click', () => setThreeVisionMode('normal'));
+    document.getElementById('btnVisionThermal')?.addEventListener('click', () => setThreeVisionMode('thermal'));
+    document.getElementById('btnVisionXray')?.addEventListener('click', () => setThreeVisionMode('xray'));
 
     // ==========================================================
     // MULTI-HAZARD ENGINE: FLOOD SIMULATION & USGS SEISMIC FEED
@@ -2428,6 +2789,17 @@
 
       const waterDatum = currentBaseDatumM + surgeM;
       document.getElementById('floodDatumMsl').textContent = `${waterDatum.toFixed(1)} m MSL`;
+
+      // Update hydraulic tube visualizer gauge column and badge
+      const hydroCol = document.getElementById('hydroWaterColumn');
+      if (hydroCol) {
+        const pct = Math.min(100, Math.max(0, (surgeM / 10.0) * 100));
+        hydroCol.style.height = `${pct}%`;
+      }
+      const badgeFlood = document.getElementById('floodSurgeBadge');
+      if (badgeFlood) {
+        badgeFlood.textContent = surgeM > 0 ? `+${surgeM.toFixed(1)}m` : '0m';
+      }
 
       // Update water plane extrusion
       if (map.getSource('flood-water-src')) {
