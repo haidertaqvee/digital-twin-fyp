@@ -1,0 +1,9 @@
+﻿Verifying Stage 2 against E:\digital-twin-fyp\data\processed\test\vectors\buildings_predictions.geojson
+  source=predictions tiles=3 threshold=0.5
+  heights: area->levels via [(150, 1), (300, 2), (600, 3)] + cap 4, 3.0 m/level (documented heuristic; SpaceNet Vegas has no ground-truth heights)
+  AOI_2_Vegas_img101: polys fresh=27 committed=27 symΔ=3.82e-11 levels=ok heights=ok -> PASS
+  AOI_2_Vegas_img1021: polys fresh=36 committed=36 symΔ=3.00e-11 levels=ok heights=ok -> PASS
+  AOI_2_Vegas_img1065: polys fresh=23 committed=23 symΔ=2.65e-11 levels=ok heights=ok -> PASS
+
+VERDICT: PASS — Stage 2 verified
+Wrote E:\digital-twin-fyp\results\verify_stage2\verification.json

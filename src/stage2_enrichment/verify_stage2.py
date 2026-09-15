@@ -135,10 +135,13 @@ def main():
             geom_match = sym_frac <= args.area_tol
 
         # Re-derive levels/heights from area (projected), as vectorize.py does.
+        # The committed GeoJSON stores crs as a CRS84 JSON object which pyproj
+        # rejects as a dict; vectorize.py wrote these in EPSG:4326 by construction
+        # (it reads the transform off the paired .tif), so pass the string directly.
         import geopandas as gpd
         gdf = gpd.GeoDataFrame(
             {"geometry": [shape(f["geometry"]) for f in by_tile[tile]]},
-            crs=data.get("crs") or "EPSG:4326",
+            crs="EPSG:4326",
         )
         if len(gdf):
             area_m2 = gdf.to_crs("EPSG:32611").geometry.area
