@@ -167,6 +167,11 @@ def list_tiles():
 @app.get("/api/tile/{tile_id}")
 def get_tile_geojson(tile_id: str):
     demo_dir = getattr(app.state, "demo_dir", DEFAULT_DEMO_DIR)
+    if tile_id in ["all", "tile_all", "all.geojson", "tile_all.geojson"]:
+        all_path = demo_dir / "all_demo_buildings.geojson"
+        if all_path.exists():
+            return json.loads(all_path.read_text(encoding="utf-8"))
+
     clean_id = tile_id if tile_id.startswith("tile_") else f"tile_{tile_id}"
     if not clean_id.endswith(".geojson"):
         clean_id += ".geojson"
@@ -177,6 +182,29 @@ def get_tile_geojson(tile_id: str):
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading tile: {e}")
+
+
+@app.get("/api/buildings/all")
+def get_all_demo_buildings():
+    demo_dir = getattr(app.state, "demo_dir", DEFAULT_DEMO_DIR)
+    all_path = demo_dir / "all_demo_buildings.geojson"
+    if not all_path.exists():
+        raise HTTPException(status_code=404, detail="all_demo_buildings.geojson not found")
+    try:
+        return json.loads(all_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading all buildings: {e}")
+
+
+@app.get("/api/buildings/predicted")
+def get_all_predicted_buildings():
+    pred_path = ROOT_DIR / "data" / "processed" / "test" / "vectors" / "buildings_predictions.geojson"
+    if not pred_path.exists():
+        raise HTTPException(status_code=404, detail="buildings_predictions.geojson not found")
+    try:
+        return json.loads(pred_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading predicted buildings: {e}")
 
 
 @app.get("/api/mesh/{tile_id}")

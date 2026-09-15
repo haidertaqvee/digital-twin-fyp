@@ -816,7 +816,7 @@
       });
 
       await loadTileManifest();
-      await loadBuildingsLayer('tile_AOI_2_Vegas_img4174.geojson');
+      await loadBuildingsLayer('all');
       await refreshActiveIncidents();
       
       setInterval(refreshActiveIncidents, 8000);
@@ -867,7 +867,10 @@
         const res = await fetch('/api/tiles');
         const data = await res.json();
         const select = document.getElementById('tileSelect');
-        select.innerHTML = '<option value="all">All Sector 7 Tiles</option>';
+        select.innerHTML = `
+          <option value="all">Sector 7 (All 1,016 Addressed Buildings)</option>
+          <option value="predicted_all">Full AI Twin (3,621 Buildings / 140 Tiles)</option>
+        `;
         if (data.tiles) {
           data.tiles.forEach(t => {
             const opt = document.createElement('option');
@@ -875,11 +878,12 @@
             opt.textContent = `${t.tile} (${t.buildings || ''} bldgs)`;
             select.appendChild(opt);
           });
-          select.value = 'tile_AOI_2_Vegas_img4174.geojson';
         }
+        select.value = 'all';
         select.addEventListener('change', (e) => {
           loadBuildingsLayer(e.target.value);
-          const tname = e.target.value.replace('tile_', '').replace('.geojson', '');
+          const val = e.target.value;
+          const tname = val === 'all' ? 'AOI_2_Vegas_img4174' : (val === 'predicted_all' ? 'AOI_2_Vegas_img4174' : val.replace('tile_', '').replace('.geojson', ''));
           document.getElementById('btnDownloadMesh').href = `/api/mesh/${tname}`;
         });
       } catch (err) {
@@ -889,10 +893,30 @@
 
     // Load and render 3D Building Extrusion Layer
     async function loadBuildingsLayer(tileFile) {
-      const url = tileFile === 'all' ? '/api/tile/tile_AOI_2_Vegas_img4174.geojson' : `/api/tile/${tileFile}`;
+      let url = '/api/buildings/all';
+      if (tileFile === 'predicted_all') {
+        url = '/api/buildings/predicted';
+      } else if (tileFile && tileFile !== 'all') {
+        url = `/api/tile/${tileFile}`;
+      }
       try {
         const res = await fetch(url);
         currentGeoJson = await res.json();
+
+        // Dynamically update building counters
+        if (currentGeoJson && currentGeoJson.features) {
+          document.getElementById('statStructures').textContent = currentGeoJson.features.length.toLocaleString();
+          let low = 0, med = 0, high = 0;
+          currentGeoJson.features.forEach(f => {
+            const vc = f.properties ? f.properties.vuln_class : null;
+            if (vc === 'high') high++;
+            else if (vc === 'medium') med++;
+            else low++;
+          });
+          document.getElementById('countLow').textContent = low;
+          document.getElementById('countMed').textContent = med;
+          document.getElementById('countHigh').textContent = high;
+        }
 
         if (map.getSource('buildings-source')) {
           map.getSource('buildings-source').setData(currentGeoJson);
@@ -965,7 +989,9 @@
           map.on('mouseleave', 'buildings-3d', () => { map.getCanvas().style.cursor = ''; });
         }
 
-        if (currentGeoJson && currentGeoJson.features && currentGeoJson.features.length > 0) {
+        if (tileFile === 'all' || !tileFile) {
+          map.flyTo({ center: [-115.2019, 36.1914], zoom: 16.6, pitch: 65, bearing: -25, duration: 1800 });
+        } else if (currentGeoJson && currentGeoJson.features && currentGeoJson.features.length > 0) {
           const firstCoord = currentGeoJson.features[0].geometry.coordinates[0][0];
           map.flyTo({ center: firstCoord, zoom: 17.5, pitch: 64, bearing: -25, duration: 1800 });
         }
