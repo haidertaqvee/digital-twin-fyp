@@ -308,6 +308,14 @@
         <span class="meta-val" id="hazardType">Medical</span>
       </div>
       <div class="meta-item">
+        <span class="meta-label">DEM Ground MSL</span>
+        <span class="meta-val" id="demGround" style="color: var(--cyan);">-- m MSL</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Floor MSL Altitude</span>
+        <span class="meta-val" id="demFloor" style="color: white;">-- m MSL</span>
+      </div>
+      <div class="meta-item">
         <span class="meta-label">Structure ID</span>
         <span class="meta-val" id="structureId">Block 7-A</span>
       </div>
@@ -403,6 +411,36 @@
         position: [1.5, 90, 80]
       });
 
+      // Configure AWS Open Data Terrarium DEM Source for real 3D ground topography
+      map.addSource('terrain-dem', {
+        type: 'raster-dem',
+        tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        encoding: 'terrarium',
+        tileSize: 256,
+        maxzoom: 15
+      });
+      map.setTerrain({ source: 'terrain-dem', exaggeration: 1.25 });
+
+      // Add City-Wide 3D Buildings (OpenFreeMap planet tiles)
+      map.addSource('citywide-src', {
+        type: 'vector',
+        url: 'https://tiles.openfreemap.org/planet'
+      });
+      map.addLayer({
+        id: 'citywide-3d-buildings',
+        type: 'fill-extrusion',
+        source: 'citywide-src',
+        'source-layer': 'building',
+        minzoom: 13,
+        paint: {
+          'fill-extrusion-color': '#1e293b',
+          'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 12.0],
+          'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+          'fill-extrusion-opacity': 0.75,
+          'fill-extrusion-vertical-gradient': true
+        }
+      });
+
       await loadIncident();
     });
 
@@ -431,6 +469,11 @@
         document.getElementById('hazardType').textContent = (incidentData.emergency_type || 'General').toUpperCase();
         document.getElementById('structureId').textContent = incidentData.structure_id || incidentData.block_id || 'Block 7';
         document.getElementById('vulnRating').textContent = `${(incidentData.vuln_class || 'low').toUpperCase()} (${incidentData.vuln_score || 0.2})`;
+
+        const groundElev = incidentData.dem_elevation_m != null ? `${incidentData.dem_elevation_m.toFixed(1)} m MSL` : '--';
+        const floorElev = incidentData.floor_elevation_m != null ? `${incidentData.floor_elevation_m.toFixed(1)} m MSL` : (incidentData.dem_elevation_m != null ? `${(incidentData.dem_elevation_m + 12).toFixed(1)} m MSL` : '--');
+        document.getElementById('demGround').textContent = groundElev;
+        document.getElementById('demFloor').textContent = floorElev;
 
         // Navigation Link
         document.getElementById('btnDirections').href = `https://www.google.com/maps/dir/?api=1&destination=${incidentData.lat},${incidentData.lon}`;

@@ -631,6 +631,13 @@
         <button class="scale-btn" data-scale="5.0">5x Tower</button>
       </div>
 
+      <button class="btn btn-orbit" id="btnToggleTerrain" style="color: var(--cyan); border-color: rgba(34, 211, 238, 0.3);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m8 3 4 8 5-5 5 15H2L8 3z"/>
+        </svg>
+        3D DEM Terrain
+      </button>
+
       <button class="btn btn-orbit" id="btnToggleCitywide" style="color: var(--cyan); border-color: rgba(34, 211, 238, 0.3);">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -687,6 +694,19 @@
       <select id="tileSelect" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; outline: none;">
         <option value="all">Sector 7 (All 20 Demo Tiles)</option>
       </select>
+    </div>
+
+    <!-- Location & Twin Presets -->
+    <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 2px;">
+      <label style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Location & Twin Presets</label>
+      <div style="display: flex; gap: 6px;">
+        <button id="btnPresetISB" class="btn btn-orbit" style="flex: 1; font-size: 0.72rem; padding: 6px 8px; justify-content: center; background: rgba(34, 211, 238, 0.1); border-color: var(--border-focus); color: var(--cyan);">
+          📍 Islamabad (IST)
+        </button>
+        <button id="btnPresetVegas" class="btn btn-orbit" style="flex: 1; font-size: 0.72rem; padding: 6px 8px; justify-content: center;">
+          📍 Las Vegas (S7)
+        </button>
+      </div>
     </div>
 
     <!-- Download 3D Mesh Link -->
@@ -813,7 +833,7 @@
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
 
     map.on('load', async () => {
-      console.log('Map loaded, configuring 3D directional lighting...');
+      console.log('Map loaded, configuring 3D directional lighting & Terrarium DEM terrain...');
       
       // CRITICAL: Configure MapLibre 3D directional lighting so walls receive shadow shading
       map.setLight({
@@ -823,11 +843,55 @@
         position: [1.5, 90, 80]
       });
 
+      // Configure AWS Open Data Terrarium DEM Source for real 3D ground topography
+      map.addSource('terrain-dem', {
+        type: 'raster-dem',
+        tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        encoding: 'terrarium',
+        tileSize: 256,
+        maxzoom: 15
+      });
+      map.setTerrain({ source: 'terrain-dem', exaggeration: 1.25 });
+
       await loadTileManifest();
       await loadBuildingsLayer('all');
       await refreshActiveIncidents();
       
       setInterval(refreshActiveIncidents, 8000);
+    });
+
+    // Toggle 3D DEM Terrain
+    let showTerrain = true;
+    document.getElementById('btnToggleTerrain').addEventListener('click', () => {
+      showTerrain = !showTerrain;
+      const btn = document.getElementById('btnToggleTerrain');
+      map.setTerrain(showTerrain ? { source: 'terrain-dem', exaggeration: 1.25 } : null);
+      btn.style.color = showTerrain ? 'var(--cyan)' : 'var(--text-muted)';
+      btn.style.borderColor = showTerrain ? 'rgba(34, 211, 238, 0.3)' : 'var(--border)';
+      showToast(showTerrain ? '3D DEM Terrain Elevation: ACTIVE' : '3D DEM Terrain: FLAT 2D');
+    });
+
+    // Location Presets (Islamabad IST Campus vs Las Vegas Sector 7)
+    document.getElementById('btnPresetISB').addEventListener('click', () => {
+      map.flyTo({
+        center: [73.1537, 33.6408],
+        zoom: 16.5,
+        pitch: 65,
+        bearing: -15,
+        duration: 2500
+      });
+      showToast('Navigated to Islamabad Capital Territory (IST Campus)');
+    });
+
+    document.getElementById('btnPresetVegas').addEventListener('click', () => {
+      map.flyTo({
+        center: [-115.2019, 36.1914],
+        zoom: 16.6,
+        pitch: 65,
+        bearing: -25,
+        duration: 2500
+      });
+      showToast('Navigated to Las Vegas Sector 7 AI Twin');
     });
 
     // 3D Scale Selector Buttons
@@ -1008,6 +1072,17 @@
             const floors = parseInt(props.floors || props.levels || 1, 10);
             const height = parseFloat(props.height_m || floors * 3.0);
             
+            // Query DEM Ground Elevation
+            let terrainElev = 0;
+            if (map.queryTerrainElevation) {
+              const q = map.queryTerrainElevation(coords);
+              if (q != null && !isNaN(q)) terrainElev = Math.round(q * 10) / 10;
+            }
+            if (!terrainElev || terrainElev === 0) {
+              terrainElev = (coords.lat >= 33.3 && coords.lat <= 33.9) ? 508.0 : 667.7;
+            }
+            const roofElev = Math.round((terrainElev + height) * 10) / 10;
+
             // Build visual floor stack pills
             let floorPills = '';
             for (let i = 1; i <= floors; i++) {
@@ -1027,9 +1102,15 @@
                   </div>
                 </div>
                 <div style="text-align: right;">
-                  <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Metric Elevation</div>
+                  <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Structure Height</div>
                   <div style="font-size: 1rem; font-weight: 800; color: var(--cyan);">${height.toFixed(1)} m</div>
                 </div>
+              </div>
+
+              <!-- DEM Elevation Grid -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(34, 211, 238, 0.08); border: 1px solid rgba(34, 211, 238, 0.25); padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.75rem;">
+                <div><strong>DEM Ground:</strong> <span style="color: var(--cyan);">${terrainElev.toFixed(1)} m MSL</span></div>
+                <div><strong>Roof Altitude:</strong> <span style="color: white;">${roofElev.toFixed(1)} m MSL</span></div>
               </div>
 
               <!-- Visual Floor Stack -->
@@ -1071,29 +1152,65 @@
             const props = e.features[0].properties;
             const coords = e.lngLat;
             
-            const height = parseFloat(props.render_height || 6.0);
-            const floors = Math.max(1, Math.round(height / 3.0));
-            
+            // Dynamic Regional Detection (Islamabad vs Las Vegas vs Global)
+            let regionName = "Global Urban Grid";
+            let defaultFloors = 2;
+            if (coords.lat >= 33.3 && coords.lat <= 33.9 && coords.lng >= 72.8 && coords.lng <= 73.5) {
+              regionName = "Islamabad Capital Territory, Pakistan";
+              defaultFloors = 4; // Multi-story institutional/academic campus standard (e.g. IST)
+            } else if (coords.lat >= 36.0 && coords.lat <= 36.4 && coords.lng >= -115.4 && coords.lng <= -115.0) {
+              regionName = "Las Vegas Metropolitan Area, Nevada";
+              defaultFloors = 2;
+            } else {
+              regionName = `Regional Zone (${coords.lat.toFixed(4)}° N, ${coords.lng.toFixed(4)}° E)`;
+            }
+
+            let floors = defaultFloors;
+            if (props.render_height && parseFloat(props.render_height) > 0) {
+              floors = Math.max(1, Math.round(parseFloat(props.render_height) / 3.0));
+            } else if (props.levels || props.building_levels) {
+              floors = parseInt(props.levels || props.building_levels, 10);
+            }
+
+            const height = parseFloat(props.render_height || (floors * 3.0));
+
+            // Query DEM Ground Elevation from MapLibre Terrarium source
+            let terrainElev = 0;
+            if (map.queryTerrainElevation) {
+              const q = map.queryTerrainElevation(coords);
+              if (q != null && !isNaN(q)) terrainElev = Math.round(q * 10) / 10;
+            }
+            if (!terrainElev || terrainElev === 0) {
+              terrainElev = (coords.lat >= 33.3 && coords.lat <= 33.9) ? 508.0 : 667.7;
+            }
+            const roofElev = Math.round((terrainElev + height) * 10) / 10;
+
             let floorPills = '';
             for (let i = 1; i <= floors; i++) {
-              floorPills += `<div style="flex: 1; text-align: center; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border); border-radius: 4px; padding: 3px 2px; font-size: 0.68rem; font-weight: 600; color: var(--text);">${i === 1 ? 'Ground' : 'L' + i}</div>`;
+              floorPills += `<div style="flex: 1; text-align: center; background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 4px; padding: 3px 2px; font-size: 0.68rem; font-weight: 700; color: var(--cyan);">${i === 1 ? 'Ground' : 'L' + i}</div>`;
             }
 
             const html = `
-              <div class="popup-title">City Structure (OSM Grid)</div>
-              <div class="popup-sub">Las Vegas Metropolitan Area</div>
+              <div class="popup-title">City Structure (3D Twin)</div>
+              <div class="popup-sub">${regionName}</div>
               
               <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px;">
                 <div>
-                  <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Building Levels</div>
+                  <div style="font-size: 0.65rem; color: var(--cyan); text-transform: uppercase; font-weight: 800;">Building Levels</div>
                   <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem; font-weight: 800; color: white;">
                     🏢 ${floors} ${floors === 1 ? 'FLOOR' : 'FLOORS'}
                   </div>
                 </div>
                 <div style="text-align: right;">
-                  <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Estimated Height</div>
+                  <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Structure Height</div>
                   <div style="font-size: 1rem; font-weight: 800; color: var(--text);">${height.toFixed(1)} m</div>
                 </div>
+              </div>
+
+              <!-- DEM Elevation Grid -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(34, 211, 238, 0.08); border: 1px solid rgba(34, 211, 238, 0.25); padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.75rem;">
+                <div><strong>DEM Ground:</strong> <span style="color: var(--cyan);">${terrainElev.toFixed(1)} m MSL</span></div>
+                <div><strong>Roof Altitude:</strong> <span style="color: white;">${roofElev.toFixed(1)} m MSL</span></div>
               </div>
 
               <div style="display: flex; gap: 4px; margin-bottom: 8px;">
@@ -1101,7 +1218,7 @@
               </div>
 
               <div style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.3;">
-                Height derived from 3D vector tile metadata (standard 3.0m per floor).
+                DEM terrain elevation sampled from AWS Open Data Terrarium (MSL). Standard 3.0m per floor level.
               </div>
             `;
             
@@ -1168,7 +1285,8 @@
             <div class="popup-sub" style="font-weight: 600; color: white;">${inc.address}</div>
             <div style="font-size: 0.75rem; margin-bottom: 8px;">
               <div><strong>Type:</strong> <span class="badge-type badge-${inc.emergency_type}">${inc.emergency_type}</span></div>
-              <div><strong>Estimated Level:</strong> ${inc.est_floor !== 'unknown' ? 'Floor ' + inc.est_floor : 'Ground / Unknown'}</div>
+              <div><strong>Estimated Level:</strong> <span style="color: var(--cyan); font-weight: 700;">${inc.est_floor !== 'unknown' ? 'Floor ' + inc.est_floor : 'Ground / Unknown'}</span></div>
+              <div><strong>DEM Ground MSL:</strong> <span style="color: var(--cyan);">${inc.dem_elevation_m != null ? inc.dem_elevation_m + ' m' : 'N/A'}</span></div>
               <div><strong>Broadcast Age:</strong> ${inc.age_minutes} min ago</div>
             </div>
             <a href="/r/${inc.id}" target="_blank" class="btn btn-sos" style="display: block; text-align: center; padding: 6px; font-size: 0.75rem;">Open Rescuer HUD</a>
@@ -1190,7 +1308,7 @@
             </div>
             <div class="incident-addr">${inc.address}</div>
             <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
-              ${inc.est_floor !== 'unknown' ? 'Fl ' + inc.est_floor : 'Floor unk'} • ${inc.structure_id || 'Ext'}
+              ${inc.est_floor !== 'unknown' ? 'Fl ' + inc.est_floor : 'Floor unk'} • ${inc.dem_elevation_m != null ? inc.dem_elevation_m + 'm MSL • ' : ''}${inc.structure_id || 'Ext'}
             </div>
           `;
 

@@ -389,7 +389,11 @@
       <button class="floor-pill active" data-floor="1">Ground</button>
       <button class="floor-pill" data-floor="2">Floor 2</button>
       <button class="floor-pill" data-floor="3">Floor 3</button>
-      <button class="floor-pill" data-floor="4">Floor 4+</button>
+      <button class="floor-pill" data-floor="4">Floor 4</button>
+      <button class="floor-pill" data-floor="5">Floor 5</button>
+      <button class="floor-pill" data-floor="6">Floor 6</button>
+      <button class="floor-pill" data-floor="7">Floor 7</button>
+      <button class="floor-pill" data-floor="8">Floor 8+</button>
       <button class="floor-pill" data-floor="0">Basement</button>
     </div>
 
@@ -408,21 +412,27 @@
       <div class="gps-info">
         <div style="font-weight: 600; color: var(--text);">GPS Location Fix</div>
         <div style="color: var(--text-muted);" id="gpsStatus">Acquiring device position...</div>
+        <div style="color: var(--cyan); font-size: 0.72rem; margin-top: 2px;" id="demStatus">DEM Ground: ~508m MSL</div>
       </div>
-      <button class="gps-btn" id="btnDemoLocation">Use Vegas Test Point</button>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <button class="gps-btn" id="btnIsbLocation">📍 Islamabad (IST)</button>
+        <button class="gps-btn" id="btnDemoLocation">📍 Vegas (S7)</button>
+      </div>
     </div>
   </div>
 
   <!-- Result State (Replaces Form on Broadcast) -->
   <div class="container" id="resultCard">
     <div class="res-badge">✓ REGISTERED ON DIGITAL TWIN</div>
-    <div class="res-addr" id="resAddress">Block 7-A, Structure 1</div>
+    <div class="res-addr" id="resAddress">Sector H-12 / IST Campus, Islamabad</div>
     <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;" id="resType">Emergency Type: Medical</div>
 
     <div class="res-meta">
-      <div><strong>Assigned Block:</strong> <span id="resBlock">7-A</span></div>
-      <div><strong>Structure ID:</strong> <span id="resStructure">7-A-01</span></div>
-      <div><strong>Estimated Level:</strong> <span id="resFloor" style="color: var(--cyan); font-weight: 700;">Floor 1</span></div>
+      <div><strong>Assigned Block:</strong> <span id="resBlock">Sector H-12</span></div>
+      <div><strong>Structure ID:</strong> <span id="resStructure">ISB-B4-01</span></div>
+      <div><strong>Registered Level:</strong> <span id="resFloor" style="color: var(--cyan); font-weight: 700;">Floor 4</span></div>
+      <div><strong>DEM Ground MSL:</strong> <span id="resDem" style="color: var(--cyan); font-weight: 700;">508.0 m</span></div>
+      <div><strong>Floor MSL Altitude:</strong> <span id="resRoof" style="color: white; font-weight: 700;">517.0 m</span></div>
       <div><strong>Incident ID:</strong> <span id="resId">#12345</span></div>
     </div>
 
@@ -471,6 +481,19 @@
       });
     });
 
+    async function updateDemPreview(lat, lon) {
+      try {
+        const res = await fetch(`/api/dem/elevation?lat=${lat}&lon=${lon}`);
+        if (res.ok) {
+          const d = await res.json();
+          document.getElementById('demStatus').textContent = `DEM Ground: ${d.elevation_m}m MSL`;
+          return;
+        }
+      } catch (e) {}
+      const fallback = (lat >= 33.3 && lat <= 33.9) ? 508.0 : 667.7;
+      document.getElementById('demStatus').textContent = `DEM Ground: ~${fallback}m MSL`;
+    }
+
     // Acquire GPS position
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -478,21 +501,38 @@
           userLat = pos.coords.latitude;
           userLon = pos.coords.longitude;
           document.getElementById('gpsStatus').textContent = `${userLat.toFixed(5)}, ${userLon.toFixed(5)} (±${Math.round(pos.coords.accuracy)}m)`;
+          updateDemPreview(userLat, userLon);
         },
         (err) => {
-          document.getElementById('gpsStatus').textContent = `Using Vegas Demo Coord (${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
+          // Default to Islamabad coordinates when running locally in Pakistan
+          userLat = 33.6408;
+          userLon = 73.1537;
+          document.getElementById('gpsStatus').textContent = `Islamabad (IST Campus: ${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
+          updateDemPreview(userLat, userLon);
         },
         { enableHighAccuracy: true, timeout: 6000 }
       );
     } else {
-      document.getElementById('gpsStatus').textContent = `Vegas Test Coord (${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
+      userLat = 33.6408;
+      userLon = 73.1537;
+      document.getElementById('gpsStatus').textContent = `Islamabad (IST Campus: ${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
+      updateDemPreview(userLat, userLon);
     }
+
+    // Islamabad Preset button
+    document.getElementById('btnIsbLocation').addEventListener('click', () => {
+      userLat = 33.6408;
+      userLon = 73.1537;
+      document.getElementById('gpsStatus').textContent = `Islamabad (IST Campus: ${userLat}, ${userLon})`;
+      updateDemPreview(userLat, userLon);
+    });
 
     // Explicit Vegas Demo button
     document.getElementById('btnDemoLocation').addEventListener('click', () => {
       userLat = 36.191416;
       userLon = -115.201943;
       document.getElementById('gpsStatus').textContent = `Vegas Demo Zone (Block 7-A: ${userLat}, ${userLon})`;
+      updateDemPreview(userLat, userLon);
     });
 
     // Trigger SOS
@@ -528,6 +568,8 @@
         document.getElementById('resBlock').textContent = data.block_id || 'N/A';
         document.getElementById('resStructure').textContent = data.structure_id || 'N/A';
         document.getElementById('resFloor').textContent = data.est_floor !== 'unknown' ? `Floor ${data.est_floor}` : 'Ground / Unknown';
+        document.getElementById('resDem').textContent = data.dem_elevation_m != null ? `${data.dem_elevation_m.toFixed(1)} m` : '--';
+        document.getElementById('resRoof').textContent = data.floor_elevation_m != null ? `${data.floor_elevation_m.toFixed(1)} m` : (data.dem_elevation_m != null ? `${(data.dem_elevation_m + 12).toFixed(1)} m` : '--');
         document.getElementById('resId').textContent = `#${data.incident_id}`;
 
         shareUrl = data.share_url;

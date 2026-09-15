@@ -37,6 +37,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from stage2_enrichment.reverse_geocode import ReverseGeocoder
+from stage2_enrichment.dem import get_dem_elevation
 
 DEFAULT_DEMO_DIR = ROOT_DIR / "data" / "processed" / "demo_tiles"
 DEFAULT_WEB_DIR = ROOT_DIR / "demo"
@@ -257,6 +258,19 @@ def register_sos(req: SOSRequest, request: Request):
     }
 
 
+@app.get("/api/dem/elevation")
+def get_dem_point(lat: float, lon: float):
+    """Query ground elevation in meters above sea level from AWS Open Data Terrarium DEM."""
+    elev = get_dem_elevation(lat, lon)
+    return {
+        "lat": lat,
+        "lon": lon,
+        "elevation_m": elev,
+        "source": "AWS Open Data Terrarium DEM (30m/10m resolution)",
+        "unit": "meters above sea level (MSL)"
+    }
+
+
 @app.get("/api/sos/active")
 def list_active_sos():
     """Return active unexpired incidents for live map pins (zero PII beyond coords/floor)."""
@@ -276,6 +290,9 @@ def list_active_sos():
             "est_floor": item["est_floor"],
             "floors": item["floors"],
             "height_m": item["height_m"],
+            "dem_elevation_m": item.get("dem_elevation_m"),
+            "roof_elevation_m": item.get("roof_elevation_m"),
+            "floor_elevation_m": item.get("floor_elevation_m"),
             "vuln_class": item["vuln_class"],
             "inside": item["inside"],
             "created_at": item["created_at"],
