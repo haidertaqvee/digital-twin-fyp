@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TerraTwin SOS — Emergency Location Beacon</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #070b14;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --sos: #ff2a5f;
+      --sos-glow: rgba(255, 42, 95, 0.55);
+      --cyan: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.35);
+      --amber: #f59e0b;
+      --green: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: radial-gradient(circle at 50% 20%, #151d33 0%, var(--bg) 75%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* Top Bar */
+    .header {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .header-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 240, 255, 0.1);
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(0, 240, 255, 0.25);
+    }
+
+    .header-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-top: 8px;
+    }
+
+    .header-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Hazard Selector */
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      align-self: flex-start;
+      margin-bottom: -10px;
+    }
+
+    .hazard-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      width: 100%;
+    }
+
+    .hazard-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .hazard-btn.active {
+      background: rgba(255, 42, 95, 0.15);
+      border-color: var(--sos);
+      color: white;
+      box-shadow: 0 0 14px rgba(255, 42, 95, 0.3);
+    }
+
+    .hazard-icon {
+      font-size: 1.25rem;
+    }
+
+    /* Floor Selector */
+    .floor-row {
+      width: 100%;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .floor-pill {
+      flex: 1;
+      min-width: 60px;
+      text-align: center;
+      padding: 8px 6px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .floor-pill.active {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+
+    /* Big SOS Orb */
+    .orb-wrapper {
+      position: relative;
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .orb-ring {
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      border: 2px solid var(--sos);
+      opacity: 0.4;
+      animation: pulseRing 2.4s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+
+    .orb-ring:nth-child(2) {
+      animation-delay: 0.8s;
+    }
+
+    .orb-btn {
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ff527b, var(--sos) 60%, #b80036 100%);
+      border: 3px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 0 40px var(--sos-glow), inset 0 0 20px rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: white;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 2;
+    }
+
+    .orb-btn:active {
+      transform: scale(0.92);
+      box-shadow: 0 0 20px var(--sos-glow);
+    }
+
+    .orb-icon {
+      font-size: 2.2rem;
+    }
+
+    .orb-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+
+    @keyframes pulseRing {
+      0% {
+        transform: scale(0.85);
+        opacity: 0.8;
+      }
+      100% {
+        transform: scale(1.45);
+        opacity: 0;
+      }
+    }
+
+    /* GPS Coordinates & Demo Switcher */
+    .gps-box {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+    }
+
+    .gps-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .gps-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--cyan);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Post-Registration Success Card */
+    #resultCard {
+      display: none;
+      width: 100%;
+      background: var(--bg-card);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--cyan);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 0 30px var(--cyan-glow);
+      animation: slideUp 0.35s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .res-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      margin-bottom: 12px;
+    }
+
+    .res-addr {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: white;
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+
+    .res-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 0.8rem;
+    }
+
+    .btn-action {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      border: none;
+      margin-bottom: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--sos), #ff6b8b);
+      color: white;
+      box-shadow: 0 0 20px var(--sos-glow);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    /* Footer Privacy Note */
+    .privacy-note {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.4;
+      max-width: 380px;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="mainFlow">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-tag">● Satellite Twin Geocoder</div>
+      <h1 class="header-title">EMERGENCY SOS</h1>
+      <p class="header-sub">Register your exact building & floor for rapid rescue</p>
+    </div>
+
+    <!-- Hazard Type Selector -->
+    <div class="section-label">Incident Type</div>
+    <div class="hazard-grid">
+      <button class="hazard-btn active" data-type="medical">
+        <span class="hazard-icon">🚑</span>
+        <span>Medical</span>
+      </button>
+      <button class="hazard-btn" data-type="fire">
+        <span class="hazard-icon">🔥</span>
+        <span>Fire</span>
+      </button>
+      <button class="hazard-btn" data-type="collapse">
+        <span class="hazard-icon">🏚️</span>
+        <span>Structural / Trap</span>
+      </button>
+      <button class="hazard-btn" data-type="general">
+        <span class="hazard-icon">⚠️</span>
+        <span>General SOS</span>
+      </button>
+    </div>
+
+    <!-- Floor Selector -->
+    <div class="section-label">Your Current Level</div>
+    <div class="floor-row">
+      <button class="floor-pill active" data-floor="1">Ground</button>
+      <button class="floor-pill" data-floor="2">Floor 2</button>
+      <button class="floor-pill" data-floor="3">Floor 3</button>
+      <button class="floor-pill" data-floor="4">Floor 4+</button>
+      <button class="floor-pill" data-floor="0">Basement</button>
+    </div>
+
+    <!-- Central Pulsing SOS Orb -->
+    <div class="orb-wrapper">
+      <div class="orb-ring"></div>
+      <div class="orb-ring"></div>
+      <button class="orb-btn" id="btnSos">
+        <span class="orb-icon">📡</span>
+        <span class="orb-text">SEND SOS</span>
+      </button>
+    </div>
+
+    <!-- GPS Coordinate Fix Card -->
+    <div class="gps-box">
+      <div class="gps-info">
+        <div style="font-weight: 600; color: var(--text);">GPS Location Fix</div>
+        <div style="color: var(--text-muted);" id="gpsStatus">Acquiring device position...</div>
+      </div>
+      <button class="gps-btn" id="btnDemoLocation">Use Vegas Test Point</button>
+    </div>
+  </div>
+
+  <!-- Result State (Replaces Form on Broadcast) -->
+  <div class="container" id="resultCard">
+    <div class="res-badge">✓ REGISTERED ON DIGITAL TWIN</div>
+    <div class="res-addr" id="resAddress">Block 7-A, Structure 1</div>
+    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;" id="resType">Emergency Type: Medical</div>
+
+    <div class="res-meta">
+      <div><strong>Assigned Block:</strong> <span id="resBlock">7-A</span></div>
+      <div><strong>Structure ID:</strong> <span id="resStructure">7-A-01</span></div>
+      <div><strong>Estimated Level:</strong> <span id="resFloor" style="color: var(--cyan); font-weight: 700;">Floor 1</span></div>
+      <div><strong>Incident ID:</strong> <span id="resId">#12345</span></div>
+    </div>
+
+    <a href="#" id="btnOpenReceiver" class="btn-action btn-primary" target="_blank">
+      <span>Open Rescuer Navigation HUD</span>
+      <span>→</span>
+    </a>
+
+    <button id="btnShareLink" class="btn-action btn-secondary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
+      <span>Share Rescue Link</span>
+    </button>
+  </div>
+
+  <!-- Privacy Banner -->
+  <div class="privacy-note">
+    🔒 <strong>Zero PII Guarantee:</strong> No personal identity, phone number, or names are collected. Coordinates and emergency details expire automatically after 24 hours.
+  </div>
+
+  <script>
+    // State
+    let selectedHazard = 'medical';
+    let selectedFloor = 1;
+    let userLat = 36.191416; // Default to Las Vegas Demo tile (AOI_2_Vegas_img4174)
+    let userLon = -115.201943;
+    let shareUrl = '';
+
+    // Hazard selector buttons
+    document.querySelectorAll('.hazard-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.hazard-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedHazard = btn.dataset.type;
+      });
+    });
+
+    // Floor pills
+    document.querySelectorAll('.floor-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.floor-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        selectedFloor = parseInt(pill.dataset.floor, 10);
+      });
+    });
+
+    // Acquire GPS position
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          userLat = pos.coords.latitude;
+          userLon = pos.coords.longitude;
+          document.getElementById('gpsStatus').textContent = `${userLat.toFixed(5)}, ${userLon.toFixed(5)} (±${Math.round(pos.coords.accuracy)}m)`;
+        },
+        (err) => {
+          document.getElementById('gpsStatus').textContent = `Using Vegas Demo Coord (${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else {
+      document.getElementById('gpsStatus').textContent = `Vegas Test Coord (${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
+    }
+
+    // Explicit Vegas Demo button
+    document.getElementById('btnDemoLocation').addEventListener('click', () => {
+      userLat = 36.191416;
+      userLon = -115.201943;
+      document.getElementById('gpsStatus').textContent = `Vegas Demo Zone (Block 7-A: ${userLat}, ${userLon})`;
+    });
+
+    // Trigger SOS
+    document.getElementById('btnSos').addEventListener('click', async () => {
+      const btn = document.getElementById('btnSos');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="orb-icon">⏳</span><span class="orb-text">MATCHING...</span>';
+
+      try {
+        const payload = {
+          lat: userLat,
+          lon: userLon,
+          baro_floor: selectedFloor,
+          emergency_type: selectedHazard
+        };
+
+        const res = await fetch('/api/sos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error('Failed to register SOS');
+        const data = await res.json();
+
+        // Show result card
+        document.getElementById('mainFlow').style.display = 'none';
+        const card = document.getElementById('resultCard');
+        card.style.display = 'flex';
+
+        document.getElementById('resAddress').textContent = data.address;
+        document.getElementById('resType').textContent = `Emergency Type: ${data.emergency_type.toUpperCase()}`;
+        document.getElementById('resBlock').textContent = data.block_id || 'N/A';
+        document.getElementById('resStructure').textContent = data.structure_id || 'N/A';
+        document.getElementById('resFloor').textContent = data.est_floor !== 'unknown' ? `Floor ${data.est_floor}` : 'Ground / Unknown';
+        document.getElementById('resId').textContent = `#${data.incident_id}`;
+
+        shareUrl = data.share_url;
+        document.getElementById('btnOpenReceiver').href = data.receiver_path;
+
+      } catch (err) {
+        alert('Could not transmit SOS. Please retry or contact dispatch directly.');
+        btn.disabled = false;
+        btn.innerHTML = '<span class="orb-icon">📡</span><span class="orb-text">SEND SOS</span>';
+      }
+    });
+
+    // Share Rescue Link
+    document.getElementById('btnShareLink').addEventListener('click', async () => {
+      if (navigator.share && shareUrl) {
+        try {
+          await navigator.share({
+            title: 'EMERGENCY: Immediate Rescue Required',
+            text: `Rescue needed at ${document.getElementById('resAddress').textContent}`,
+            url: shareUrl
+          });
+          return;
+        } catch (e) {}
+      }
+
+      // Clipboard fallback
+      if (shareUrl) {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Rescue link copied to clipboard: ' + shareUrl);
+      }
+    });
+  </script>
+</body>
+</html>

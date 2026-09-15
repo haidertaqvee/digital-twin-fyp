@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TerraTwin Rescuer HUD — Incident Target Navigation</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- MapLibre GL JS -->
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+  <style>
+    :root {
+      --bg: #070b14;
+      --bg-panel: rgba(13, 20, 36, 0.88);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --sos-red: #ff2a5f;
+      --sos-glow: rgba(255, 42, 95, 0.6);
+      --cyan: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.4);
+      --green: #10b981;
+      --amber: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Glass Overlay */
+    .glass {
+      background: var(--bg-panel);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Rescuer HUD Card */
+    .hud-card {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 380px;
+      max-width: calc(100vw - 40px);
+      z-index: 10;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .hud-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(255, 42, 95, 0.2);
+      color: var(--sos-red);
+      border: 1px solid var(--sos-red);
+      box-shadow: 0 0 12px var(--sos-glow);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--sos-red);
+      animation: blink 1s infinite alternate;
+    }
+
+    @keyframes blink {
+      from { opacity: 0.4; }
+      to { opacity: 1; }
+    }
+
+    .hud-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      line-height: 1.25;
+      color: white;
+    }
+
+    .hud-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .meta-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .meta-val {
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--text);
+    }
+
+    .meta-val.floor {
+      color: var(--cyan);
+      font-size: 1.15rem;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      border: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav {
+      background: linear-gradient(135deg, var(--sos-red), #ff527b);
+      color: white;
+      box-shadow: 0 0 20px var(--sos-glow);
+    }
+
+    .btn-nav:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 28px var(--sos-glow);
+    }
+
+    .btn-compass {
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      color: var(--cyan);
+    }
+
+    .btn-compass:hover {
+      background: rgba(0, 240, 255, 0.22);
+      box-shadow: 0 0 16px var(--cyan-glow);
+    }
+
+    /* Compass HUD Overlay Modal */
+    #compassModal {
+      display: none;
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      width: 280px;
+      z-index: 20;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .compass-dial {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan);
+      box-shadow: 0 0 20px var(--cyan-glow), inset 0 0 20px rgba(0, 240, 255, 0.15);
+      margin: 12px auto;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .compass-arrow {
+      width: 6px;
+      height: 70px;
+      background: linear-gradient(to top, transparent 50%, var(--sos-red) 50%);
+      position: absolute;
+      top: 30px;
+      transform-origin: bottom center;
+      transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+    }
+
+    .compass-readout {
+      font-family: 'Space Grotesk', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+
+    /* Pulsing Pin */
+    .incident-marker {
+      position: relative;
+    }
+
+    .marker-core {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--sos-red);
+      border: 3px solid white;
+      box-shadow: 0 0 20px var(--sos-glow);
+    }
+
+    .marker-pulse {
+      position: absolute;
+      top: -19px;
+      left: -19px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(255, 42, 95, 0.45);
+      animation: ripple 1.5s infinite ease-out;
+    }
+
+    @keyframes ripple {
+      0% { transform: scale(0.3); opacity: 1; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Satellite Map -->
+  <div id="map"></div>
+
+  <!-- Rescuer Navigation HUD Card -->
+  <div class="hud-card glass">
+    <div class="hud-header">
+      <div class="status-badge">
+        <div class="pulse-dot"></div>
+        <span id="badgeText">EMERGENCY TARGET</span>
+      </div>
+      <a href="/demo/index.html" style="font-size: 0.75rem; color: var(--text-muted); text-decoration: none;">Twin View ↗</a>
+    </div>
+
+    <div>
+      <h1 class="hud-title" id="incidentAddress">Locating Structure...</h1>
+      <p class="hud-sub" id="incidentAge">Querying digital twin index...</p>
+    </div>
+
+    <!-- Metadata Grid -->
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span class="meta-label">Target Floor</span>
+        <span class="meta-val floor" id="targetFloor">Level 1</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Hazard Type</span>
+        <span class="meta-val" id="hazardType">Medical</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Structure ID</span>
+        <span class="meta-val" id="structureId">Block 7-A</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Vulnerability</span>
+        <span class="meta-val" id="vulnRating">Low Risk</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="action-row">
+      <a href="#" id="btnDirections" class="btn btn-nav" target="_blank">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+        </svg>
+        <span>NAVIGATE</span>
+      </a>
+
+      <button id="btnToggleCompass" class="btn btn-compass">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+        </svg>
+        <span>AR HUD</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Compass HUD Overlay -->
+  <div id="compassModal" class="glass">
+    <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.08em;">
+      Tactical Bearing HUD
+    </div>
+    <div class="compass-dial">
+      <div class="compass-arrow" id="compassArrow"></div>
+    </div>
+    <div class="compass-readout" id="compassDistance">Calculating...</div>
+    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Bearing to structure perimeter</div>
+  </div>
+
+  <script>
+    // Extract incident ID from URL path /r/{id} or ?id={id}
+    const pathParts = window.location.pathname.split('/r/');
+    let incidentId = pathParts.length > 1 && pathParts[1] ? pathParts[1].replace('/', '') : new URLSearchParams(window.location.search).get('id');
+
+    // Default fallback to first pre-seeded incident if unspecified
+    if (!incidentId) {
+      incidentId = 'demo_fir_7c7e';
+    }
+
+    let map;
+    let incidentData = null;
+
+    // Initialize MapLibre
+    map = new maplibregl.Map({
+      container: 'map',
+      style: {
+        version: 8,
+        sources: {
+          'esri-imagery': {
+            type: 'raster',
+            tiles: [
+              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: 'Esri World Imagery'
+          }
+        },
+        layers: [
+          {
+            id: 'esri-layer',
+            type: 'raster',
+            source: 'esri-imagery',
+            minzoom: 0,
+            maxzoom: 20
+          }
+        ]
+      },
+      center: [-115.2019, 36.1914],
+      zoom: 17.5,
+      pitch: 62,
+      bearing: -15,
+      antialias: true
+    });
+
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+
+    map.on('load', async () => {
+      await loadIncident();
+    });
+
+    async function loadIncident() {
+      try {
+        let res = await fetch(`/api/sos/${incidentId}`);
+        if (!res.ok) {
+          // Fallback to latest active incident
+          const activeRes = await fetch('/api/sos/active');
+          const activeData = await activeRes.json();
+          if (activeData.incidents && activeData.incidents.length > 0) {
+            incidentId = activeData.incidents[0].id;
+            res = await fetch(`/api/sos/${incidentId}`);
+          }
+        }
+        
+        if (!res.ok) throw new Error('Incident not found');
+        incidentData = await res.json();
+
+        // Update HUD
+        document.getElementById('incidentAddress').textContent = incidentData.address;
+        const timeAgo = incidentData.created_at_epoch ? Math.round((Date.now()/1000 - incidentData.created_at_epoch) / 60) : 1;
+        document.getElementById('incidentAge').textContent = `Reported ${timeAgo} minute${timeAgo === 1 ? '' : 's'} ago • Verified Twin Fix`;
+        
+        document.getElementById('targetFloor').textContent = incidentData.est_floor !== 'unknown' ? `Floor ${incidentData.est_floor}` : 'Ground / Unknown';
+        document.getElementById('hazardType').textContent = (incidentData.emergency_type || 'General').toUpperCase();
+        document.getElementById('structureId').textContent = incidentData.structure_id || incidentData.block_id || 'Block 7';
+        document.getElementById('vulnRating').textContent = `${(incidentData.vuln_class || 'low').toUpperCase()} (${incidentData.vuln_score || 0.2})`;
+
+        // Navigation Link
+        document.getElementById('btnDirections').href = `https://www.google.com/maps/dir/?api=1&destination=${incidentData.lat},${incidentData.lon}`;
+
+        // Focus Map on Target
+        map.flyTo({
+          center: [incidentData.lon, incidentData.lat],
+          zoom: 18,
+          pitch: 65,
+          bearing: -10,
+          duration: 1500
+        });
+
+        // Add Pulsing Incident Beacon Marker
+        const el = document.createElement('div');
+        el.className = 'incident-marker';
+        el.innerHTML = '<div class="marker-pulse"></div><div class="marker-core"></div>';
+
+        new maplibregl.Marker({ element: el })
+          .setLngLat([incidentData.lon, incidentData.lat])
+          .addTo(map);
+
+        // Load and highlight building 3D extrusion
+        if (incidentData.tile) {
+          loadBuildingFootprint(incidentData.tile, incidentData.structure_id);
+        }
+
+      } catch (err) {
+        document.getElementById('incidentAddress').textContent = 'Incident Expired or Not Found';
+        document.getElementById('incidentAge').textContent = 'Records auto-purge after 24 hours (Zero PII).';
+      }
+    }
+
+    async function loadBuildingFootprint(tile, structureId) {
+      try {
+        const res = await fetch(`/api/tile/${tile}`);
+        const geojson = await res.json();
+
+        map.addSource('tile-buildings', {
+          type: 'geojson',
+          data: geojson
+        });
+
+        // Highlight matching building
+        map.addLayer({
+          id: 'bldgs-extrusion',
+          type: 'fill-extrusion',
+          source: 'tile-buildings',
+          paint: {
+            'fill-extrusion-color': [
+              'case',
+              ['==', ['get', 'structure_id'], structureId], '#ff2a5f',
+              '#38bdf8'
+            ],
+            'fill-extrusion-height': ['get', 'height_m'],
+            'fill-extrusion-base': 0,
+            'fill-extrusion-opacity': [
+              'case',
+              ['==', ['get', 'structure_id'], structureId], 0.95,
+              0.4
+            ]
+          }
+        });
+      } catch (e) {
+        console.warn('Could not load building footprint layer:', e);
+      }
+    }
+
+    // Compass HUD Toggle
+    const compassModal = document.getElementById('compassModal');
+    let compassActive = false;
+
+    document.getElementById('btnToggleCompass').addEventListener('click', () => {
+      compassActive = !compassActive;
+      compassModal.style.display = compassActive ? 'block' : 'none';
+      if (compassActive) updateCompass();
+    });
+
+    function updateCompass() {
+      if (!incidentData) return;
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          const lat1 = pos.coords.latitude, lon1 = pos.coords.longitude;
+          const lat2 = incidentData.lat, lon2 = incidentData.lon;
+
+          // Compute bearing
+          const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
+          const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+                    Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
+          let brng = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+
+          // Compute rough distance in metres
+          const R = 6371e3;
+          const phi1 = lat1 * Math.PI / 180, phi2 = lat2 * Math.PI / 180;
+          const dphi = (lat2 - lat1) * Math.PI / 180, dlam = (lon2 - lon1) * Math.PI / 180;
+          const a = Math.sin(dphi/2) * Math.sin(dphi/2) + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dlam/2) * Math.sin(dlam/2);
+          const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+          document.getElementById('compassArrow').style.transform = `rotate(${brng}deg)`;
+          document.getElementById('compassDistance').textContent = d < 1000 ? `${Math.round(d)} m (${Math.round(brng)}°)` : `${(d/1000).toFixed(1)} km (${Math.round(brng)}°)`;
+        }, () => {
+          document.getElementById('compassDistance').textContent = 'Target: Direct Bearing';
+        });
+      }
+    }
+  </script>
+</body>
+</html>
