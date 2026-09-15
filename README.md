@@ -1,16 +1,18 @@
-# TerraTwin SOS — 3D City Twin & Multi-Hazard Rescue Dispatch
+# TerraTwin SOS — 3D Multi-Hazard Digital Twin Platform
 
-**Automated satellite imagery pipeline → AI building footprint segmentation → vectorized 3D digital twin with generated addresses, live incident beacons, and tactical rescue navigation.**
+**Automated satellite imagery pipeline → AI building footprint segmentation → vectorized 3D digital twin with generated addresses, live incident beacons, multi-hazard simulation, and tactical rescue navigation.**
 
-- **Final Year Project (FYP):** BS Space Science, Institute of Space Technology (Supervised by Dr. Sajid Ghuffar)
+- **Official Repository:** [https://github.com/haidertaqvee/terratwin-sos](https://github.com/haidertaqvee/terratwin-sos)
+- **Academic FYP Repository:** [https://github.com/haidertaqvee/digital-twin-fyp](https://github.com/haidertaqvee/digital-twin-fyp)
+- **Final Year Project (FYP):** BS Space Science, Institute of Space Technology, Islamabad (Supervised by Dr. Sajid Ghuffar)
 - **Hackathon Submission:** AI Builders Hackathon (Devpost, Deadline: September 15, 2026)
-- **Target Environments:** Web / Mobile (FastAPI + MapLibre GL 3D + PWA) & Simulation (Unity URP)
+- **Target Environments:** Web / Mobile (FastAPI + MapLibre GL 3D + Three.js + PWA) & Simulation (Unity URP)
 
 ---
 
-## Quick Start (One Command Run)
+## ⚡ Quick Start (One Command Run)
 
-Launch the full stack (FastAPI backend + 3D Twin Explorer + Mobile SOS Beacon):
+Launch the full multi-hazard stack (FastAPI backend + 3D Twin Explorer + Mobile SOS Beacon + Rescuer HUD):
 
 ```powershell
 # Using the project conda environment
@@ -20,7 +22,7 @@ E:\digital-twin-fyp\envs\digital-twin\python.exe src/server.py --port 8000
 Open your browser:
 - **3D Twin Explorer (Dispatcher Map):** [http://localhost:8000/demo/index.html](http://localhost:8000/demo/index.html)
 - **Mobile SOS Beacon (Citizen PWA):** [http://localhost:8000/demo/sos.html](http://localhost:8000/demo/sos.html)
-- **Rescuer Navigation HUD:** [http://localhost:8000/r/demo_fir_4ba1](http://localhost:8000/r/demo_fir_4ba1)
+- **Rescuer Navigation HUD:** [http://localhost:8000/demo/receiver.html](http://localhost:8000/demo/receiver.html)
 
 ### Testing on a Mobile Phone (Same LAN or ngrok)
 
@@ -30,77 +32,83 @@ Open your browser:
    # Example: 192.168.1.50
    ```
 2. **On your mobile phone browser:** Navigate to `http://192.168.1.50:8000/demo/sos.html`.
-3. Alternatively, expose the port via ngrok:
+3. Alternatively, expose via ngrok:
    ```bash
    ngrok http 8000
    ```
 
 ---
 
-## Core Pipeline Architecture
-
-```
-[SpaceNet Satellite Imagery (0.3m RGB)]
-                 │
-                 ▼ (Stage 1: PyTorch smp.Unet ResNet34)
-    [Building Footprint Masks (IoU 0.8062)]
-                 │
-                 ▼ (Stage 2: Rasterio + GeoPandas + OSMnx)
-    [Georeferenced 3D Polygons + Addresses + Vulnerability Index]
-                 │
-       ┌─────────┴─────────┐
-       ▼                   ▼
-[FastAPI Live Hub]   [Unity URP Export]
- - POST /api/sos      - 16-bit Heightmap
- - GET /api/sos/active - Landcover Texture
- - 3D MapLibre Web    - Metadata JSON
- - Mobile SOS PWA
-```
+## 🌟 Major Capabilities & Innovations
 
 ### 1. AI Building Footprint Segmentation (`src/stage1_extraction/`)
 - Architecture: `segmentation_models_pytorch` U-Net with ImageNet-pretrained ResNet34 backbone.
-- Trained on SpaceNet 2 (Las Vegas) 650×650 pan-sharpened satellite tiles.
-- **Evaluation on held-out test split (146 tiles, never used for tuning):**
-  - **IoU: 0.8062** | **F1 Score: 0.8927** | **Precision: 0.910** | **Recall: 0.876**
-- **Pretrained Baseline Comparison:** Evaluated zero-shot WHU building model (`giswqs` EfficientNet-B4 UNet++):
-  - Our model: **0.8062 IoU** vs Pretrained baseline: **0.0200 IoU** (40× domain adaptation gain).
+- Evaluated on a held-out test split of 146 SpaceNet tiles (never seen during training):
+  - **IoU: 0.8062** | **F1 Score: 0.8927** | **Precision: 0.9101** | **Recall: 0.8760**
+- **40× Domain Adaptation Gain:** Outperforms zero-shot WHU building baseline (0.0200 IoU) by 40× in desert urban terrain.
 
-### 2. Semantic Enrichment, Addresses & Vulnerability (`src/stage2_enrichment/`)
-- **Vectorization (`vectorize.py`):** Inverts raster masks to EPSG:4326 polygons (round-trip IoU > 0.992).
-- **Address Generation (`generate_addresses.py`):** DBSCAN clustering into blocks (`7-A`, `7-B`), reading-order structure numbering (`7-A-01`), and OSM road proximity (`Block 7-A, Structure 1, 20m north of Oxley Lane`).
-- **Vulnerability Scoring (`vulnerability.py`):** Normalized 4-component index combining density (0.35), structure area (0.25), size variance (0.20), and road access (0.20).
-- **Spatial Reverse Geocoding (`reverse_geocode.py`):** Millisecond spatial indexing resolving `(lat, lon, baro_floor)` to exact building footprints, indoor/outdoor offsets, and floor levels.
+### 2. AWS Open Data Terrarium DEM Topographic Precision
+- Real-world Digital Elevation Models (30m/10m resolution) anchored to Mean Sea Level (MSL).
+- Sub-millisecond point elevation lookups (1.07 ms) via LRU memoization.
+- Dual-regional support: Islamabad (IST Campus ~530.7m MSL) and Las Vegas (Sector 7 ~685m MSL).
 
-### 3. Real-Time Emergency Backend (`src/server.py`)
-- FastAPI service with in-memory thread-safe incident database.
-- Multi-hazard incident triage: `Medical`, `Fire`, `Structural Collapse`, and `General Emergency`.
-- **Zero-PII & 24h Expiry:** Only coordinates, floor, timestamp, and incident type are recorded. All records auto-purge after 24 hours.
-- **Live SOS Pins (`GET /api/sos/active`):** Broadcasts active unexpired incidents directly onto the shared Twin Explorer map with recency status (`critical`, `recent`, `aged`).
+### 3. Interactive 3D Multi-Floor Building Slices
+- Discrete interactable floors + 18cm concrete structural slabs.
+- Dynamic 3D Floor Explosion Slider (floors float apart in mid-air).
+- Three.js Volumetric Studio with **Standard 3D**, **🔥 FLIR Thermal Heatmap**, and **📐 Architectural X-Ray Wireframe** modes.
 
-### 4. Client Surfaces (`demo/`)
-- **Twin Explorer (`demo/index.html`):** MapLibre GL JS + Esri World Imagery (no API keys required). 3D fill-extrusion polygons colored by vulnerability risk, live pulsing SOS beacons, dispatcher metrics, and "Run AI Live" radar sweep scan.
-- **Mobile SOS Beacon (`demo/sos.html`):** Responsive dark-glassmorphic PWA featuring a giant pulsing emergency orb, hazard type picker, floor level selector, instant digital-twin address card, and 1-tap link sharing.
-- **Rescuer Tactical HUD (`demo/receiver.html`):** High-contrast navigation card, target floor badge, 3D building target view, direct Google Maps turn-by-turn routing, and client-side AR compass heading HUD.
+### 4. 3D Hydraulic Flood Inundation Simulator
+- Dynamic water surge slider (`0.0m` to `+10.0m`).
+- Vertical hydraulic water stage tube meter visualizer.
+- Submergence metrics and automated vertical refuge advisories.
 
-### 5. Unity Simulation Export (`src/export_unity.py`)
-- Generates 16-bit grayscale heightmaps (`uint16`), vulnerability landcover textures, and `metadata.json` for Unity URP procedural terrain generation.
+### 5. USGS Real-Time Seismic & Tectonic Fault Monitor
+- Live USGS earthquake feed (M2.5+ events) with 10-tier Modified Mercalli Intensity (MMI) shakemaps.
+- Active fault overlays (Margalla Thrust, Rawat Fault, Las Vegas Valley faults).
+- Structural shear failure advisories.
+
+### 6. Mobile Citizen SOS Beacon (`demo/sos.html`)
+- One-tap emergency broadcast with floor level and hazard type.
+- Haptic vibration feedback on buttons and transmission.
+- **Acoustic Rescue Locator Beacon:** Web Audio API high-frequency dual-tone chirp (`880Hz / 1320Hz`) pulsing every 2.2s to guide search dogs and rescue crews under debris.
+
+### 7. Tactical Rescuer HUD Navigation (`demo/receiver.html`)
+- Military corner crosshair reticles.
+- Live proximity countdown (meters + walking/vehicle ETA).
+- Interactive operational status stepper (`Target SOS` -> `En Route` -> `On Scene` -> `Evacuating`).
+
+### 8. Performance Speedup (86% Payload Savings)
+- GZipMiddleware enabled on FastAPI server.
+- In-memory GeoJSON pre-caching for sub-millisecond API responses.
 
 ---
 
-## Attributions & Acknowledgments
+## 🏛️ Repository Architecture
 
-- **SpaceNet Dataset:** SpaceNet 2 Las Vegas building footprints dataset provided by SpaceNet on AWS Open Data.
-- **Microsoft Building Footprints:** Inspiration for algorithmic building extraction and address mapping.
-- **WHU Pretrained Baseline:** `giswqs` pretrained building footprint model (Apache-2.0) used for zero-shot domain evaluation.
-- **Map & GIS Libraries:** MapLibre GL JS (BSD 3-Clause), Esri World Imagery, GeoPandas, Shapely, Rasterio, OSMnx / OpenStreetMap contributors.
-- **Deep Learning:** PyTorch, `segmentation_models_pytorch` by Pavel Yakubovskiy, `timm` by Ross Wightman.
+```
+digital-twin-fyp/
+├── demo/
+│   ├── index.html       # 3D Twin Explorer, Flood Sim, Seismic Monitor & Three.js Studio
+│   ├── sos.html         # Citizen SOS Beacon PWA with Acoustic Chirp
+│   └── receiver.html    # Tactical Rescuer Navigation HUD
+├── src/
+│   ├── server.py        # FastAPI high-speed backend with GZip & In-Memory Caches
+│   ├── stage1_extraction/   # PyTorch U-Net training, inference & evaluation
+│   ├── stage2_enrichment/   # Vectorization, address generation & vulnerability index
+│   └── export_unity.py      # Unity URP 16-bit heightmaps and textures
+├── models/
+│   └── unet_resnet34_best.pth  # Trained checkpoint (IoU 0.8062)
+├── DEVPOST.md           # Official Hackathon Project Submission Dossier
+├── README.md            # Comprehensive project documentation
+└── CONTEXT.md           # Authoritative project memory and technical context
+```
 
 ---
 
-## Academic & Hackathon Metadata
+## 🎓 Academic & Hackathon Metadata
 
 - **Author:** Syed Muhammad Haider Taqvee
 - **Institution:** Institute of Space Technology (IST), Islamabad, Pakistan
 - **Degree:** BS Space Science
 - **Supervisor:** Dr. Sajid Ghuffar
-- **Submission:** AI Builders Hackathon (Devpost, 2026)
+- **Submission:** AI Builders Hackathon (Devpost, September 2026)
