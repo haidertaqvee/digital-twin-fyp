@@ -563,6 +563,20 @@
       border: 1px solid var(--border);
       font-size: 0.72rem;
       font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .floor-tag:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .floor-tag.active {
+      background: rgba(34, 211, 238, 0.25);
+      border-color: var(--cyan);
+      color: white;
+      box-shadow: 0 0 10px rgba(34, 211, 238, 0.4);
     }
 
     .floor-tag.highlight {
@@ -570,6 +584,58 @@
       border-color: var(--sos-red);
       color: #ff3366;
       box-shadow: 0 0 10px var(--sos-glow);
+    }
+
+    /* Interactive Multi-Floor Stack in Building Popup */
+    .floor-stack-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin: 8px 0;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      border-radius: 8px;
+      padding: 6px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .floor-stack-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.72rem;
+      user-select: none;
+    }
+
+    .floor-stack-row:hover {
+      background: rgba(34, 211, 238, 0.15);
+      border-color: rgba(34, 211, 238, 0.4);
+      transform: translateX(2px);
+    }
+
+    .floor-stack-row.selected {
+      background: rgba(34, 211, 238, 0.25);
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px rgba(34, 211, 238, 0.35);
+    }
+
+    .floor-stack-row.incident {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+      animation: pulse-floor 1.5s infinite;
+    }
+
+    @keyframes pulse-floor {
+      0%, 100% { border-color: #ef4444; }
+      50% { border-color: #fca5a5; }
     }
 
     /* Toast */
@@ -645,11 +711,11 @@
         3D Terrain
       </button>
 
-      <button class="btn btn-orbit" id="btnGoogleEarth3D" style="color: #60a5fa; border-color: rgba(96, 165, 250, 0.35);" title="Open Perspective View in Google Earth 3D">
+      <button class="btn btn-orbit" id="btnExplodeFloors" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.35);" title="Explode / Separate 3D Floors Vertically">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/>
+          <polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/>
         </svg>
-        Google 3D Earth
+        Explode 3D Floors
       </button>
 
       <button class="btn btn-orbit" id="btnToggleCitywide" style="color: var(--cyan); border-color: rgba(34, 211, 238, 0.3);">
@@ -784,9 +850,14 @@
       <span id="modalFloorCount" style="color: var(--cyan); font-weight: 700;">2 Levels</span>
     </div>
     
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: var(--text-muted); margin: 2px 0;">
+      <span>Explode Slices:</span>
+      <input type="range" id="modalExplodeSlider" min="0" max="60" value="0" style="flex: 1; accent-color: var(--cyan); cursor: pointer;">
+      <span id="modalExplodeVal" style="color: var(--cyan); width: 28px; text-align: right;">0m</span>
+    </div>
+
     <div class="floor-badges-row" id="modalFloorBadges">
-      <div class="floor-tag">Ground Level</div>
-      <div class="floor-tag">Floor 2</div>
+      <div class="floor-tag active" data-floor="all">All Floors</div>
     </div>
   </div>
 
@@ -808,9 +879,110 @@
     let map;
     let markers = [];
     let currentGeoJson = null;
+    let rawBuildingsGeoJson = null;
     let heightMultiplier = 2.5; // Tactical 3D scale by default so heights are prominent
     let isOrbiting = false;
     let orbitAnimId = null;
+    let isExploded = false;
+    let currentExplodeOffset = 0.0;
+    let selectedFloorInfo = null; // { structure_id: string, floor_num: number }
+    let latestIncidents = [];
+    let activeBuildingPopup = null;
+
+    function generateMultiFloorGeoJson(rawGeoJson, explodeOffset = 0, selectedFloor = null, activeIncidents = []) {
+      if (!rawGeoJson || !rawGeoJson.features) return { type: 'FeatureCollection', features: [] };
+      
+      const floorFeatures = [];
+      const activeIncidentMap = new Map();
+      if (activeIncidents && activeIncidents.length) {
+        activeIncidents.forEach(inc => {
+          if (inc.structure_id) activeIncidentMap.set(inc.structure_id, inc);
+        });
+      }
+
+      rawGeoJson.features.forEach((feat, bldgIdx) => {
+        const p = feat.properties || {};
+        const sid = p.structure_id || `bldg_${bldgIdx}`;
+        const floors = Math.max(1, parseInt(p.floors || p.levels || Math.round((p.height_m || 3.0) / 3.0), 10) || 1);
+        const totalHeight = parseFloat(p.height_m || (floors * 3.0));
+        const floorHeight = totalHeight / floors;
+        const inc = activeIncidentMap.get(sid);
+
+        const isBuildingSelected = selectedFloor && (selectedFloor.structure_id === sid);
+
+        for (let f = 1; f <= floors; f++) {
+          const isIncidentFloor = inc && (inc.est_floor === f || (inc.est_floor === 'unknown' && f === 1));
+          const isSelected = isBuildingSelected && (selectedFloor.floor_num === f);
+          const isOtherFloorInSelectedBldg = isBuildingSelected && !isSelected;
+
+          // In exploded view, each floor rises by (f - 1) * explodeOffset
+          const vertOffset = (f - 1) * explodeOffset;
+
+          const slabBase = (f - 1) * floorHeight + vertOffset;
+          const slabTop = slabBase + 0.18; // 18cm structural floor plate
+          const habBase = slabTop;
+          const habTop = f * floorHeight + vertOffset;
+
+          // 1. Structural Floor Slab Plate Feature
+          floorFeatures.push({
+            type: 'Feature',
+            geometry: feat.geometry,
+            properties: {
+              feature_type: 'slab',
+              structure_id: sid,
+              floor_id: `${sid}_F${f}_slab`,
+              floor_num: f,
+              render_base_m: slabBase,
+              render_top_m: slabTop,
+              vuln_class: p.vuln_class || 'low'
+            }
+          });
+
+          // 2. Habitable Floor Space Volume Feature
+          floorFeatures.push({
+            type: 'Feature',
+            geometry: feat.geometry,
+            properties: {
+              feature_type: 'floor',
+              structure_id: sid,
+              floor_id: `${sid}_F${f}`,
+              floor_num: f,
+              floor_name: f === 1 ? 'Ground Floor (L1)' : `Floor ${f} (L${f})`,
+              total_floors: floors,
+              render_base_m: habBase,
+              render_top_m: habTop,
+              height_m: floorHeight,
+              total_building_height_m: totalHeight,
+              vuln_class: p.vuln_class || 'low',
+              vuln_score: p.vuln_score || 0,
+              address: p.address || 'Address unassigned',
+              dist_road_m: p.dist_road_m != null ? p.dist_road_m : null,
+              road_name: p.road_name || '',
+              area_m2: p.area_m2 || 0,
+              block_id: p.block_id || '',
+              tile: p.tile || '',
+              is_incident_floor: isIncidentFloor ? 1 : 0,
+              is_selected: isSelected ? 1 : 0,
+              is_dimmed: isOtherFloorInSelectedBldg ? 1 : 0,
+              incident_type: isIncidentFloor ? inc.emergency_type : '',
+              incident_id: isIncidentFloor ? inc.id : ''
+            }
+          });
+        }
+      });
+
+      return {
+        type: 'FeatureCollection',
+        features: floorFeatures
+      };
+    }
+
+    function refreshMultiFloorLayers() {
+      if (map && map.getSource('buildings-floors-source') && rawBuildingsGeoJson) {
+        const data = generateMultiFloorGeoJson(rawBuildingsGeoJson, currentExplodeOffset, selectedFloorInfo, latestIncidents);
+        map.getSource('buildings-floors-source').setData(data);
+      }
+    }
 
     // Initialize MapLibre GL with Google 3D Hybrid, Google Satellite, and Esri Imagery
     map = new maplibregl.Map({
@@ -939,19 +1111,33 @@
       });
     });
 
-    // Google 3D Earth Perspective Launcher
-    document.getElementById('btnGoogleEarth3D').addEventListener('click', () => {
-      const center = map.getCenter();
-      const pitch = Math.round(map.getPitch() || 65);
-      const heading = Math.round((map.getBearing() + 360) % 360);
-      let elev = 530;
-      if (map.queryTerrainElevation) {
-        const q = map.queryTerrainElevation(center);
-        if (q != null && !isNaN(q)) elev = Math.round(q);
+    // Explode 3D Floors Controller
+    document.getElementById('btnExplodeFloors').addEventListener('click', () => {
+      isExploded = !isExploded;
+      const btn = document.getElementById('btnExplodeFloors');
+      currentExplodeOffset = isExploded ? 5.5 : 0.0;
+      if (isExploded) {
+        btn.style.background = 'rgba(56, 189, 248, 0.25)';
+        btn.style.borderColor = 'var(--cyan)';
+        btn.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/>
+          </svg>
+          Collapse Floors
+        `;
+        showToast('Exploded 3D View: Separate floor slabs floating in mid-air');
+      } else {
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/>
+          </svg>
+          Explode 3D Floors
+        `;
+        showToast('Assembled 3D View: Normal structural floor stack');
       }
-      const url = `https://earth.google.com/web/@${center.lat.toFixed(6)},${center.lng.toFixed(6)},${elev}a,650d,35y,${heading}h,${pitch}t,0r`;
-      window.open(url, '_blank');
-      showToast('Opening 3D Photorealistic View in Google Earth 3D...');
+      refreshMultiFloorLayers();
     });
 
     // Location Presets (Islamabad IST Campus vs Las Vegas Sector 7)
@@ -984,8 +1170,13 @@
         btn.classList.add('active');
         heightMultiplier = parseFloat(btn.dataset.scale);
         
-        if (map.getLayer('buildings-3d')) {
-          map.setPaintProperty('buildings-3d', 'fill-extrusion-height', ['*', ['get', 'height_m'], heightMultiplier]);
+        if (map.getLayer('buildings-floors-3d')) {
+          map.setPaintProperty('buildings-floors-3d', 'fill-extrusion-height', ['*', ['get', 'render_top_m'], heightMultiplier]);
+          map.setPaintProperty('buildings-floors-3d', 'fill-extrusion-base', ['*', ['get', 'render_base_m'], heightMultiplier]);
+        }
+        if (map.getLayer('buildings-floor-slabs-3d')) {
+          map.setPaintProperty('buildings-floor-slabs-3d', 'fill-extrusion-height', ['*', ['get', 'render_top_m'], heightMultiplier]);
+          map.setPaintProperty('buildings-floor-slabs-3d', 'fill-extrusion-base', ['*', ['get', 'render_base_m'], heightMultiplier]);
         }
         if (map.getLayer('citywide-3d-buildings')) {
           map.setPaintProperty('citywide-3d-buildings', 'fill-extrusion-height', [
@@ -1093,8 +1284,11 @@
           document.getElementById('countHigh').textContent = high;
         }
 
-        if (map.getSource('buildings-source')) {
-          map.getSource('buildings-source').setData(currentGeoJson);
+        rawBuildingsGeoJson = currentGeoJson;
+        const multiFloorData = generateMultiFloorGeoJson(rawBuildingsGeoJson, currentExplodeOffset, selectedFloorInfo, latestIncidents);
+
+        if (map.getSource('buildings-floors-source')) {
+          map.getSource('buildings-floors-source').setData(multiFloorData);
         } else {
           // Add City-Wide 3D Buildings Source (OpenFreeMap planet vector tiles)
           if (!map.getSource('citywide-src')) {
@@ -1126,43 +1320,73 @@
             });
           }
 
-          map.addSource('buildings-source', {
+          map.addSource('buildings-floors-source', {
             type: 'geojson',
-            data: currentGeoJson
+            data: multiFloorData
           });
 
-          // 3D fill-extrusion layer with vertical gradient and lighting enabled
+          // Structural Floor Slabs (inter-floor concrete floor plates)
           map.addLayer({
-            id: 'buildings-3d',
+            id: 'buildings-floor-slabs-3d',
             type: 'fill-extrusion',
-            source: 'buildings-source',
+            source: 'buildings-floors-source',
+            filter: ['==', ['get', 'feature_type'], 'slab'],
+            paint: {
+              'fill-extrusion-color': '#0f172a',
+              'fill-extrusion-height': ['*', ['get', 'render_top_m'], heightMultiplier],
+              'fill-extrusion-base': ['*', ['get', 'render_base_m'], heightMultiplier],
+              'fill-extrusion-opacity': 0.95,
+              'fill-extrusion-vertical-gradient': false
+            }
+          });
+
+          // Habitable Floor Slices (separate interactable floors)
+          map.addLayer({
+            id: 'buildings-floors-3d',
+            type: 'fill-extrusion',
+            source: 'buildings-floors-source',
+            filter: ['==', ['get', 'feature_type'], 'floor'],
             paint: {
               'fill-extrusion-color': [
-                'match',
-                ['get', 'vuln_class'],
-                'high', '#ef4444',
-                'medium', '#f59e0b',
-                'low', '#10b981',
-                '#38bdf8'
+                'case',
+                ['==', ['get', 'is_selected'], 1], '#22d3ee',
+                ['==', ['get', 'is_incident_floor'], 1], '#ef4444',
+                [
+                  'match',
+                  ['get', 'vuln_class'],
+                  'high', '#ef4444',
+                  'medium', '#f59e0b',
+                  'low', '#10b981',
+                  '#0ea5e9'
+                ]
               ],
-              'fill-extrusion-height': ['*', ['get', 'height_m'], heightMultiplier],
-              'fill-extrusion-base': 0,
-              'fill-extrusion-opacity': 0.95,
+              'fill-extrusion-height': ['*', ['get', 'render_top_m'], heightMultiplier],
+              'fill-extrusion-base': ['*', ['get', 'render_base_m'], heightMultiplier],
+              'fill-extrusion-opacity': [
+                'case',
+                ['==', ['get', 'is_selected'], 1], 0.98,
+                ['==', ['get', 'is_dimmed'], 1], 0.22,
+                0.88
+              ],
               'fill-extrusion-vertical-gradient': true
             }
           });
 
-          // Click popup on buildings with 3D Inspector Launcher & Prominent Floor Banner
-          map.on('click', 'buildings-3d', (e) => {
+          // Click popup on buildings with Interactive Floor Stack and X-Ray
+          map.on('click', 'buildings-floors-3d', (e) => {
             if (!e.features || !e.features.length) return;
             const feat = e.features[0];
             const props = feat.properties;
             const coords = e.lngLat;
-            
-            const vulnColor = props.vuln_class === 'high' ? '#ef4444' : (props.vuln_class === 'medium' ? '#f59e0b' : '#10b981');
-            const floors = parseInt(props.floors || props.levels || 1, 10);
-            const height = parseFloat(props.height_m || floors * 3.0);
-            
+            const sid = props.structure_id;
+            const clickedFloor = parseInt(props.floor_num, 10) || 1;
+            const totalFloors = parseInt(props.total_floors, 10) || 1;
+            const height = parseFloat(props.total_building_height_m || (totalFloors * 3.0));
+
+            // Select clicked floor
+            selectedFloorInfo = { structure_id: sid, floor_num: clickedFloor };
+            refreshMultiFloorLayers();
+
             // Query DEM Ground Elevation
             let terrainElev = 0;
             if (map.queryTerrainElevation) {
@@ -1172,82 +1396,18 @@
             if (!terrainElev || terrainElev === 0) {
               terrainElev = (coords.lat >= 33.3 && coords.lat <= 33.9) ? 508.0 : 667.7;
             }
-            const roofElev = Math.round((terrainElev + height) * 10) / 10;
 
-            // Build visual floor stack pills
-            let floorPills = '';
-            for (let i = 1; i <= floors; i++) {
-              floorPills += `<div style="flex: 1; text-align: center; background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 4px; padding: 3px 2px; font-size: 0.68rem; font-weight: 700; color: var(--cyan);">${i === 1 ? 'Ground' : 'L' + i}</div>`;
-            }
-
-            const html = `
-              <div class="popup-title">${props.structure_id || 'Building Structure'}</div>
-              <div class="popup-sub">${props.address || 'Address unassigned'}</div>
-              
-              <!-- PROMINENT FLOOR BANNER -->
-              <div style="display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(34, 211, 238, 0.15), rgba(14, 165, 233, 0.25)); border: 1px solid var(--cyan); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 0 14px var(--cyan-glow);">
-                <div>
-                  <div style="font-size: 0.65rem; color: var(--cyan); text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">Building Height</div>
-                  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem; font-weight: 800; color: white;">
-                    🏢 ${floors} ${floors === 1 ? 'FLOOR' : 'FLOORS'}
-                  </div>
-                </div>
-                <div style="text-align: right;">
-                  <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Structure Height</div>
-                  <div style="font-size: 1rem; font-weight: 800; color: var(--cyan);">${height.toFixed(1)} m</div>
-                </div>
-              </div>
-
-              <!-- DEM Elevation Grid -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(34, 211, 238, 0.08); border: 1px solid rgba(34, 211, 238, 0.25); padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.75rem;">
-                <div><strong>DEM Ground:</strong> <span style="color: var(--cyan);">${terrainElev.toFixed(1)} m MSL</span></div>
-                <div><strong>Roof Altitude:</strong> <span style="color: white;">${roofElev.toFixed(1)} m MSL</span></div>
-              </div>
-
-              <!-- Visual Floor Stack -->
-              <div style="display: flex; gap: 4px; margin-bottom: 10px;">
-                ${floorPills}
-              </div>
-
-              <div class="popup-grid">
-                <div><strong>Footprint:</strong> ${Math.round(props.area_m2 || 0)} m²</div>
-                <div><strong>Block ID:</strong> ${props.block_id || 'N/A'}</div>
-                <div><strong>Road Access:</strong> ${props.dist_road_m != null ? props.dist_road_m + 'm' : 'N/A'}</div>
-                <div><strong>Tile Source:</strong> ${props.tile || 'AI Twin'}</div>
-              </div>
-
-              <div style="margin-bottom: 8px;">
-                <span class="popup-badge" style="background: ${vulnColor}25; color: ${vulnColor};">
-                  ${props.vuln_class || 'low'} risk (${props.vuln_score || 0})
-                </span>
-              </div>
-
-              <button class="popup-btn-3d" onclick="open3DInspector('${props.structure_id}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
-                </svg>
-                Inspect 3D Volumetric Floors
-              </button>
-
-              <a href="https://earth.google.com/web/@${coords.lat.toFixed(6)},${coords.lng.toFixed(6)},${terrainElev}a,350d,35y,0h,65t,0r" target="_blank" class="popup-btn-3d" style="background: rgba(66, 133, 244, 0.18); border-color: rgba(66, 133, 244, 0.45); color: #93c5fd; margin-top: 6px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/>
-                </svg>
-                Open in Google 3D Earth
-              </a>
-            `;
-            
-            new maplibregl.Popup({ offset: [0, -10] })
-              .setLngLat(coords)
-              .setHTML(html)
-              .addTo(map);
+            renderBuildingPopup(coords, sid, clickedFloor, totalFloors, height, terrainElev, props);
           });
 
-          // Click popup on City-Wide buildings (OpenMapTiles / OSM)
+          map.on('mouseenter', 'buildings-floors-3d', () => { map.getCanvas().style.cursor = 'pointer'; });
+          map.on('mouseleave', 'buildings-floors-3d', () => { map.getCanvas().style.cursor = ''; });
+
+          // Click popup on City-Wide buildings (OpenFreeMap / OSM)
           map.on('click', 'citywide-3d-buildings', (e) => {
             if (!e.features || !e.features.length) return;
             const props = e.features[0].properties;
+            const geom = e.features[0].geometry;
             const coords = e.lngLat;
             
             // Dynamic Regional & Campus Detection
@@ -1288,9 +1448,33 @@
             }
             const roofElev = Math.round((terrainElev + height) * 10) / 10;
 
-            let floorPills = '';
-            for (let i = 1; i <= floors; i++) {
-              floorPills += `<div style="flex: 1; text-align: center; background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 4px; padding: 3px 2px; font-size: 0.68rem; font-weight: 700; color: var(--cyan);">${i === 1 ? 'Ground' : 'L' + i}</div>`;
+            const customFeat = {
+              type: 'Feature',
+              geometry: geom,
+              properties: {
+                structure_id: title,
+                address: regionName,
+                floors: floors,
+                height_m: height,
+                vuln_class: 'low'
+              }
+            };
+            window.lastCitywideCustomFeat = customFeat;
+
+            let floorStackRows = '';
+            for (let f = floors; f >= 1; f--) {
+              const fMsl = (terrainElev + (f - 1) * 3.0).toFixed(1);
+              floorStackRows += `
+                <div class="floor-stack-row ${f === 1 ? 'selected' : ''}" onclick="window.selectCitywideFloor('${title.replace(/'/g, "\\'")}', ${f}, ${coords.lng}, ${coords.lat}, ${floors}, ${height}, ${terrainElev})">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 800; color: ${f === 1 ? 'var(--cyan)' : 'white'};">${f === 1 ? '🚪 Ground Floor' : '🏢 Level ' + f}</span>
+                    <span style="font-size: 0.68rem; color: var(--text-muted);">${fMsl} m MSL</span>
+                  </div>
+                  <div>
+                    ${f === 1 ? '<span style="font-size: 0.62rem; background: var(--cyan); color: #0f172a; font-weight: 800; padding: 2px 6px; border-radius: 3px;">ENTRANCE</span>' : ''}
+                  </div>
+                </div>
+              `;
             }
 
             const html = `
@@ -1319,34 +1503,36 @@
                 <div><strong>Roof Altitude:</strong> <span style="color: white;">${roofElev.toFixed(1)} m MSL</span></div>
               </div>
 
-              <div style="display: flex; gap: 4px; margin-bottom: 8px;">
-                ${floorPills}
+              <!-- Interactive Multi-Floor Levels -->
+              <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">
+                Interactive Multi-Floor Levels:
+              </div>
+              <div class="floor-stack-container">
+                ${floorStackRows}
               </div>
 
-              <div style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.3; margin-bottom: 6px;">
-                DEM terrain elevation sampled from AWS Open Data Terrarium (MSL). Standard 3.0m per floor level.
+              <div style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.3; margin-bottom: 8px;">
+                DEM ground elevation from AWS Terrarium DEM (MSL). Standard 3.0m per floor level.
               </div>
 
-              <a href="https://earth.google.com/web/@${coords.lat.toFixed(6)},${coords.lng.toFixed(6)},${terrainElev}a,350d,35y,0h,65t,0r" target="_blank" class="popup-btn-3d" style="background: rgba(66, 133, 244, 0.18); border-color: rgba(66, 133, 244, 0.45); color: #93c5fd; margin-top: 4px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <button class="popup-btn-3d" onclick="open3DInspector(null, window.lastCitywideCustomFeat, 1)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/>
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
                 </svg>
-                Inspect Structure in Google 3D
-              </a>
+                Inspect 3D Volumetric Floors
+              </button>
             `;
             
-              new maplibregl.Popup({ offset: [0, -10] })
-                .setLngLat(coords)
-                .setHTML(html)
-                .addTo(map);
-            });
+            if (activeBuildingPopup) activeBuildingPopup.remove();
+            activeBuildingPopup = new maplibregl.Popup({ offset: [0, -10] })
+              .setLngLat(coords)
+              .setHTML(html)
+              .addTo(map);
+          });
 
-            map.on('mouseenter', 'citywide-3d-buildings', () => { map.getCanvas().style.cursor = 'pointer'; });
-            map.on('mouseleave', 'citywide-3d-buildings', () => { map.getCanvas().style.cursor = ''; });
-
-            map.on('mouseenter', 'buildings-3d', () => { map.getCanvas().style.cursor = 'pointer'; });
-            map.on('mouseleave', 'buildings-3d', () => { map.getCanvas().style.cursor = ''; });
-          }
+          map.on('mouseenter', 'citywide-3d-buildings', () => { map.getCanvas().style.cursor = 'pointer'; });
+        }
 
         if (tileFile === 'all' || !tileFile) {
           map.flyTo({ center: [-115.2019, 36.1914], zoom: 16.6, pitch: 65, bearing: -25, duration: 1800 });
@@ -1360,12 +1546,120 @@
       }
     }
 
+    function renderBuildingPopup(coords, sid, selectedFloor, totalFloors, height, terrainElev, props) {
+      const roofElev = Math.round((terrainElev + height) * 10) / 10;
+      const selectedFloorMsl = Math.round((terrainElev + (selectedFloor - 1) * 3.0) * 10) / 10;
+      const vulnColor = props.vuln_class === 'high' ? '#ef4444' : (props.vuln_class === 'medium' ? '#f59e0b' : '#10b981');
+
+      let floorStackRows = '';
+      for (let f = totalFloors; f >= 1; f--) {
+        const isSelected = (f === selectedFloor);
+        const fMsl = (terrainElev + (f - 1) * 3.0).toFixed(1);
+        const isInc = props.is_incident_floor && (props.incident_floor == f || f === 1);
+        floorStackRows += `
+          <div class="floor-stack-row ${isSelected ? 'selected' : ''} ${isInc ? 'incident' : ''}" onclick="window.selectBuildingFloor('${sid}', ${f}, ${coords.lng}, ${coords.lat}, ${totalFloors}, ${height}, ${terrainElev})">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 800; color: ${isSelected ? 'var(--cyan)' : 'white'};">${f === 1 ? '🚪 Ground Floor' : '🏢 Floor ' + f}</span>
+              <span style="font-size: 0.68rem; color: var(--text-muted);">${fMsl} m MSL</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              ${isSelected ? '<span style="font-size: 0.62rem; background: var(--cyan); color: #0f172a; font-weight: 800; padding: 2px 6px; border-radius: 3px;">SELECTED</span>' : ''}
+              ${isInc ? '<span style="font-size: 0.62rem; background: #ef4444; color: white; font-weight: 800; padding: 2px 6px; border-radius: 3px;">🚨 INCIDENT</span>' : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      const html = `
+        <div class="popup-title">${props.structure_id || sid}</div>
+        <div class="popup-sub">${props.address || 'Address unassigned'}</div>
+        
+        <!-- Active Floor Banner -->
+        <div style="display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(34, 211, 238, 0.18), rgba(14, 165, 233, 0.28)); border: 1px solid var(--cyan); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 0 14px var(--cyan-glow);">
+          <div>
+            <div style="font-size: 0.65rem; color: var(--cyan); text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">Selected 3D Floor</div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem; font-weight: 800; color: white;">
+              ${selectedFloor === 1 ? '🚪 GROUND FLOOR' : '🏢 FLOOR ' + selectedFloor}
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Floor Altitude</div>
+            <div style="font-size: 1rem; font-weight: 800; color: var(--cyan);">${selectedFloorMsl.toFixed(1)} m MSL</div>
+          </div>
+        </div>
+
+        <!-- DEM Elevation Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(34, 211, 238, 0.08); border: 1px solid rgba(34, 211, 238, 0.25); padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.75rem;">
+          <div><strong>DEM Ground:</strong> <span style="color: var(--cyan);">${terrainElev.toFixed(1)} m MSL</span></div>
+          <div><strong>Roof Altitude:</strong> <span style="color: white;">${roofElev.toFixed(1)} m MSL</span></div>
+        </div>
+
+        <!-- Interactive Vertical Floor Stack -->
+        <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">
+          Select Floor Slice (X-Ray Inside):
+        </div>
+        <div class="floor-stack-container">
+          ${floorStackRows}
+        </div>
+
+        <div class="popup-grid">
+          <div><strong>Footprint:</strong> ${Math.round(props.area_m2 || 0)} m²</div>
+          <div><strong>Total Height:</strong> ${height.toFixed(1)} m</div>
+          <div><strong>Road Access:</strong> ${props.dist_road_m != null ? props.dist_road_m + 'm' : 'N/A'}</div>
+          <div><strong>Tile Source:</strong> ${props.tile || 'AI Twin'}</div>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <span class="popup-badge" style="background: ${vulnColor}25; color: ${vulnColor};">
+            ${props.vuln_class || 'low'} risk (${props.vuln_score || 0})
+          </span>
+        </div>
+
+        <button class="popup-btn-3d" onclick="open3DInspector('${sid}', null, ${selectedFloor})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          Inspect 3D Volumetric Floors
+        </button>
+      `;
+
+      if (activeBuildingPopup) activeBuildingPopup.remove();
+      activeBuildingPopup = new maplibregl.Popup({ offset: [0, -10] })
+        .setLngLat(coords)
+        .setHTML(html)
+        .addTo(map);
+
+      activeBuildingPopup.on('close', () => {
+        selectedFloorInfo = null;
+        refreshMultiFloorLayers();
+      });
+    }
+
+    window.selectBuildingFloor = function(sid, floorNum, lng, lat, totalFloors, height, terrainElev) {
+      selectedFloorInfo = { structure_id: sid, floor_num: floorNum };
+      refreshMultiFloorLayers();
+      const feat = (rawBuildingsGeoJson && rawBuildingsGeoJson.features) ? rawBuildingsGeoJson.features.find(f => f.properties.structure_id === sid) : null;
+      const props = feat ? feat.properties : { structure_id: sid };
+      renderBuildingPopup({ lng, lat }, sid, floorNum, totalFloors, height, terrainElev, props);
+    };
+
+    window.selectCitywideFloor = function(title, floorNum, lng, lat, totalFloors, height, terrainElev) {
+      if (window.lastCitywideCustomFeat) {
+        open3DInspector(null, window.lastCitywideCustomFeat, floorNum);
+      }
+    };
+
+
     // Refresh and display active live SOS pins on the map
     async function refreshActiveIncidents() {
       try {
         const res = await fetch('/api/sos/active');
         const data = await res.json();
         
+        latestIncidents = data.incidents || [];
+        refreshMultiFloorLayers();
+
         document.getElementById('statActiveSos').textContent = data.count;
         document.getElementById('incidentCountBadge').textContent = `${data.count} Active`;
 
@@ -1494,10 +1788,29 @@
       threeControls.enableDamping = true;
       threeControls.dampingFactor = 0.05;
       threeControls.autoRotate = true;
-      threeControls.autoRotateSpeed = 2.0;
+      threeControls.autoRotateSpeed = 1.5;
+
+      // Click raycaster on 3D floor slabs
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      container.addEventListener('pointerdown', (e) => {
+        const rect = container.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, threeCamera);
+        if (buildingMeshGroup) {
+          const floorMeshes = buildingMeshGroup.children.filter(c => c.userData && !c.userData.isSlab && c.isMesh);
+          const intersects = raycaster.intersectObjects(floorMeshes);
+          if (intersects.length > 0) {
+            const flNum = intersects[0].object.userData.floorNum;
+            selectThreeFloor(flNum);
+          }
+        }
+      });
 
       // Lights
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
       threeScene.add(ambientLight);
 
       const dirLight = new THREE.DirectionalLight(0x00f0ff, 1.2);
@@ -1525,25 +1838,55 @@
       animate();
     }
 
-    window.open3DInspector = function(structureId) {
-      if (!currentGeoJson) return;
-      const feat = currentGeoJson.features.find(f => f.properties.structure_id === structureId);
+    window.selectThreeFloor = function(targetFloor) {
+      document.querySelectorAll('#modalFloorBadges .floor-tag').forEach(b => {
+        const df = b.dataset.floor;
+        if (df === String(targetFloor)) b.classList.add('active');
+        else b.classList.remove('active');
+      });
+
+      if (!buildingMeshGroup) return;
+      buildingMeshGroup.children.forEach(child => {
+        if (!child.userData || child.userData.isSlab) return;
+        const flNum = child.userData.floorNum;
+        if (targetFloor === 'all' || flNum === targetFloor) {
+          child.material.opacity = 0.92;
+          child.material.color.setHex(targetFloor === 'all' ? child.userData.originalColor : 0x22d3ee);
+        } else {
+          // Translucent X-Ray for non-selected floors
+          child.material.opacity = 0.18;
+          child.material.color.setHex(child.userData.originalColor);
+        }
+      });
+    };
+
+    window.open3DInspector = function(structureId, customFeat = null, initialFloor = 'all') {
+      let feat = customFeat;
+      if (!feat && rawBuildingsGeoJson && rawBuildingsGeoJson.features) {
+        feat = rawBuildingsGeoJson.features.find(f => f.properties.structure_id === structureId);
+      }
+      if (!feat && currentGeoJson && currentGeoJson.features) {
+        feat = currentGeoJson.features.find(f => f.properties.structure_id === structureId);
+      }
       if (!feat) return;
 
       const modal = document.getElementById('modal3D');
       modal.style.display = 'flex';
 
-      document.getElementById('modalStructureId').textContent = `${feat.properties.structure_id} (3D Volumetric Model)`;
+      document.getElementById('modalStructureId').textContent = `${feat.properties.structure_id || 'Building Structure'} (3D Volumetric Studio)`;
       document.getElementById('modalAddress').textContent = feat.properties.address || 'Address unassigned';
-      const floors = feat.properties.floors || 1;
-      document.getElementById('modalFloorCount').textContent = `${floors} Level${floors > 1 ? 's' : ''} (${feat.properties.height_m || 3}m)`;
+      const floors = Math.max(1, parseInt(feat.properties.floors || feat.properties.levels || 1, 10) || 1);
+      const totalHeight = parseFloat(feat.properties.height_m || (floors * 3.0));
+      document.getElementById('modalFloorCount').textContent = `${floors} Level${floors > 1 ? 's' : ''} (${totalHeight.toFixed(1)}m)`;
 
       const badgeRow = document.getElementById('modalFloorBadges');
-      badgeRow.innerHTML = '';
+      badgeRow.innerHTML = `<div class="floor-tag ${initialFloor === 'all' ? 'active' : ''}" data-floor="all" onclick="selectThreeFloor('all')">All Floors</div>`;
       for (let i = 1; i <= floors; i++) {
         const b = document.createElement('div');
-        b.className = 'floor-tag';
-        b.textContent = i === 1 ? 'Ground Floor' : `Floor ${i}`;
+        b.className = `floor-tag ${i === initialFloor ? 'active' : ''}`;
+        b.dataset.floor = String(i);
+        b.textContent = i === 1 ? '🚪 Ground' : `🏢 Floor ${i}`;
+        b.onclick = () => selectThreeFloor(i);
         badgeRow.appendChild(b);
       }
 
@@ -1551,7 +1894,12 @@
         initThree();
       }
 
-      // Build 3D multi-tier mesh
+      // Reset Explode Slider
+      const slider = document.getElementById('modalExplodeSlider');
+      slider.value = 0;
+      document.getElementById('modalExplodeVal').textContent = '0m';
+
+      // Build 3D multi-tier mesh with structural floor slabs
       while (buildingMeshGroup.children.length > 0) {
         buildingMeshGroup.remove(buildingMeshGroup.children[0]);
       }
@@ -1559,13 +1907,12 @@
       const coords = feat.geometry.coordinates[0];
       const shape = new THREE.Shape();
       
-      // Calculate centroid to center model
+      // Centroid calculation
       let cx = 0, cy = 0;
       coords.forEach(pt => { cx += pt[0]; cy += pt[1]; });
       cx /= coords.length;
       cy /= coords.length;
 
-      // Scale to viewable units (~100,000 to convert degrees to metres)
       const scale = 80000;
       coords.forEach((pt, idx) => {
         const x = (pt[0] - cx) * scale;
@@ -1575,32 +1922,44 @@
       });
 
       const floorHeight = 4.0;
+      const baseColor = feat.properties.vuln_class === 'high' ? 0xef4444 : (feat.properties.vuln_class === 'medium' ? 0xf59e0b : 0x10b981);
+
       for (let fl = 0; fl < floors; fl++) {
+        // 1. Structural Concrete Floor Slab Plate
+        const slabSettings = { steps: 1, depth: 0.35, bevelEnabled: false };
+        const slabGeom = new THREE.ExtrudeGeometry(shape, slabSettings);
+        slabGeom.rotateX(Math.PI / 2);
+        const slabMat = new THREE.MeshStandardMaterial({
+          color: 0x0f172a,
+          roughness: 0.85,
+          metalness: 0.2
+        });
+        const slabMesh = new THREE.Mesh(slabGeom, slabMat);
+        slabMesh.position.y = fl * floorHeight;
+        slabMesh.userData = { isSlab: true, floorIndex: fl };
+        buildingMeshGroup.add(slabMesh);
+
+        // 2. Habitable Floor Level Volume
         const extrudeSettings = {
           steps: 1,
-          depth: floorHeight - 0.3,
+          depth: floorHeight - 0.45,
           bevelEnabled: true,
           bevelThickness: 0.15,
           bevelSize: 0.15,
           bevelSegments: 2
         };
-
         const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
         geom.rotateX(Math.PI / 2);
-
-        const color = feat.properties.vuln_class === 'high' ? 0xef4444 : (feat.properties.vuln_class === 'medium' ? 0xf59e0b : 0x10b981);
         const mat = new THREE.MeshStandardMaterial({
-          color: color,
-          roughness: 0.3,
+          color: baseColor,
+          roughness: 0.35,
           metalness: 0.2,
           transparent: true,
-          opacity: 0.9
+          opacity: 0.90
         });
-
         const mesh = new THREE.Mesh(geom, mat);
-        mesh.position.y = fl * floorHeight;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
+        mesh.position.y = fl * floorHeight + 0.35;
+        mesh.userData = { isSlab: false, floorIndex: fl, floorNum: fl + 1, originalColor: baseColor };
 
         // Wireframe edge highlight
         const edges = new THREE.EdgesGeometry(geom);
@@ -1608,6 +1967,23 @@
         mesh.add(line);
 
         buildingMeshGroup.add(mesh);
+      }
+
+      // Slider listener for dynamic vertical floor explosion
+      slider.oninput = (e) => {
+        const val = parseFloat(e.target.value);
+        document.getElementById('modalExplodeVal').textContent = `${(val * 0.1).toFixed(1)}m`;
+        buildingMeshGroup.children.forEach(child => {
+          if (child.userData && child.userData.floorIndex !== undefined) {
+            const fl = child.userData.floorIndex;
+            const baseOffset = child.userData.isSlab ? 0 : 0.35;
+            child.position.y = fl * (floorHeight + val * 0.15) + baseOffset;
+          }
+        });
+      };
+
+      if (initialFloor !== 'all') {
+        selectThreeFloor(initialFloor);
       }
 
       threeControls.reset();

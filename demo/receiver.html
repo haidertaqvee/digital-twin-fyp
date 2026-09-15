@@ -325,6 +325,12 @@
       </div>
     </div>
 
+    <!-- Tactical Interior Floor Slices -->
+    <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin: 8px 0 4px 0;">
+      Interior Floor Slices (Tactical Routing):
+    </div>
+    <div id="receiverFloorStack" style="display: flex; gap: 4px; margin-bottom: 8px;"></div>
+
     <!-- Actions -->
     <div class="action-row">
       <a href="#" id="btnDirections" class="btn btn-nav" target="_blank">
@@ -334,12 +340,6 @@
         <span>NAVIGATE</span>
       </a>
 
-      <a href="#" id="btnGoogle3D" class="btn" style="background: rgba(66, 133, 244, 0.2); border: 1px solid rgba(66, 133, 244, 0.5); color: #93c5fd;" target="_blank" title="Inspect Incident Structure in Google 3D Earth">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/>
-        </svg>
-        <span>GOOGLE 3D</span>
-      </a>
 
       <button id="btnToggleCompass" class="btn btn-compass" style="flex: 0 0 52px; padding: 12px 0;" title="Toggle Tactical AR Compass">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -484,10 +484,8 @@
         document.getElementById('demGround').textContent = groundElev;
         document.getElementById('demFloor').textContent = floorElev;
 
-        // Navigation & Google 3D Earth Perspective Links
+        // Navigation Link
         document.getElementById('btnDirections').href = `https://www.google.com/maps/dir/?api=1&destination=${incidentData.lat},${incidentData.lon}`;
-        const elev = Math.round(incidentData.dem_elevation_m || 530);
-        document.getElementById('btnGoogle3D').href = `https://earth.google.com/web/@${incidentData.lat},${incidentData.lon},${elev}a,350d,35y,0h,65t,0r`;
 
         // Focus Map on Target
         map.flyTo({
@@ -518,33 +516,166 @@
       }
     }
 
+    let receiverBuildingGeojson = null;
+    let currentSelectedReceiverFloor = null;
+
+    function buildReceiverMultiFloorData(rawGeoJson, targetSid, activeFloor) {
+      if (!rawGeoJson || !rawGeoJson.features) return { type: 'FeatureCollection', features: [] };
+      const floorFeatures = [];
+      const tf = parseInt(activeFloor, 10) || 1;
+
+      rawGeoJson.features.forEach((feat, bldgIdx) => {
+        const p = feat.properties || {};
+        const sid = p.structure_id || `bldg_${bldgIdx}`;
+        const isTargetBldg = (sid === targetSid);
+        const floors = Math.max(1, parseInt(p.floors || p.levels || Math.round((p.height_m || 3.0) / 3.0), 10) || 1);
+        const totalHeight = parseFloat(p.height_m || (floors * 3.0));
+        const floorHeight = totalHeight / floors;
+
+        for (let f = 1; f <= floors; f++) {
+          const isTargetFloor = isTargetBldg && (f === tf);
+          const isDimmed = isTargetBldg && !isTargetFloor;
+          const slabBase = (f - 1) * floorHeight;
+          const slabTop = slabBase + 0.18;
+          const habBase = slabTop;
+          const habTop = f * floorHeight;
+
+          // 1. Structural floor slab
+          floorFeatures.push({
+            type: 'Feature',
+            geometry: feat.geometry,
+            properties: {
+              feature_type: 'slab',
+              structure_id: sid,
+              floor_num: f,
+              render_base_m: slabBase,
+              render_top_m: slabTop,
+              is_target_bldg: isTargetBldg ? 1 : 0
+            }
+          });
+
+          // 2. Habitable floor slice
+          floorFeatures.push({
+            type: 'Feature',
+            geometry: feat.geometry,
+            properties: {
+              feature_type: 'floor',
+              structure_id: sid,
+              floor_num: f,
+              floor_name: f === 1 ? 'Ground Floor (L1)' : `Floor ${f} (L${f})`,
+              total_floors: floors,
+              render_base_m: habBase,
+              render_top_m: habTop,
+              is_target_bldg: isTargetBldg ? 1 : 0,
+              is_target_floor: isTargetFloor ? 1 : 0,
+              is_dimmed: isDimmed ? 1 : 0
+            }
+          });
+        }
+      });
+
+      return { type: 'FeatureCollection', features: floorFeatures };
+    }
+
     async function loadBuildingFootprint(tile, structureId) {
       try {
         const res = await fetch(`/api/tile/${tile}`);
-        const geojson = await res.json();
+        receiverBuildingGeojson = await res.json();
+        const tf = parseInt(incidentData.est_floor, 10) || 1;
+        currentSelectedReceiverFloor = tf;
 
-        map.addSource('tile-buildings', {
+        const targetFeat = receiverBuildingGeojson.features ? receiverBuildingGeojson.features.find(f => f.properties.structure_id === structureId) : null;
+        const floors = targetFeat ? Math.max(1, parseInt(targetFeat.properties.floors || targetFeat.properties.levels || 1, 10)) : (tf || 2);
+
+        // Populate receiver HUD floor ladder
+        const stackEl = document.getElementById('receiverFloorStack');
+        if (stackEl) {
+          stackEl.innerHTML = '';
+          for (let f = 1; f <= floors; f++) {
+            const btn = document.createElement('div');
+            const isIncident = (f === tf);
+            btn.style.flex = '1';
+            btn.style.textAlign = 'center';
+            btn.style.borderRadius = '4px';
+            btn.style.padding = '4px 2px';
+            btn.style.fontSize = '0.68rem';
+            btn.style.fontWeight = '700';
+            btn.style.cursor = 'pointer';
+            btn.style.transition = 'all 0.2s';
+
+            if (isIncident) {
+              btn.style.background = 'rgba(239, 68, 68, 0.25)';
+              btn.style.border = '1px solid #ef4444';
+              btn.style.color = '#ef4444';
+              btn.textContent = `🚨 L${f} (TARGET)`;
+            } else if (f === 1) {
+              btn.style.background = 'rgba(34, 211, 238, 0.15)';
+              btn.style.border = '1px solid rgba(34, 211, 238, 0.4)';
+              btn.style.color = 'var(--cyan)';
+              btn.textContent = '🚪 Ground';
+            } else {
+              btn.style.background = 'rgba(255, 255, 255, 0.05)';
+              btn.style.border = '1px solid var(--border)';
+              btn.style.color = 'var(--text-muted)';
+              btn.textContent = `L${f}`;
+            }
+
+            btn.onclick = () => {
+              currentSelectedReceiverFloor = f;
+              const updatedData = buildReceiverMultiFloorData(receiverBuildingGeojson, structureId, f);
+              if (map.getSource('tile-buildings-floors')) {
+                map.getSource('tile-buildings-floors').setData(updatedData);
+              }
+              const gElev = incidentData.dem_elevation_m || 530;
+              document.getElementById('demFloor').textContent = `${(gElev + (f - 1) * 3.0).toFixed(1)} m MSL`;
+              document.getElementById('targetFloor').textContent = f === tf ? `Floor ${f} (Target SOS)` : `Floor ${f} (Tactical Route)`;
+            };
+
+            stackEl.appendChild(btn);
+          }
+        }
+
+        const multiFloorData = buildReceiverMultiFloorData(receiverBuildingGeojson, structureId, tf);
+
+        map.addSource('tile-buildings-floors', {
           type: 'geojson',
-          data: geojson
+          data: multiFloorData
         });
 
-        // Highlight matching building
+        // Slabs
         map.addLayer({
-          id: 'bldgs-extrusion',
+          id: 'bldgs-slabs-extrusion',
           type: 'fill-extrusion',
-          source: 'tile-buildings',
+          source: 'tile-buildings-floors',
+          filter: ['==', ['get', 'feature_type'], 'slab'],
+          paint: {
+            'fill-extrusion-color': '#0f172a',
+            'fill-extrusion-height': ['*', ['get', 'render_top_m'], 2.5],
+            'fill-extrusion-base': ['*', ['get', 'render_base_m'], 2.5],
+            'fill-extrusion-opacity': 0.95
+          }
+        });
+
+        // Floors
+        map.addLayer({
+          id: 'bldgs-floors-extrusion',
+          type: 'fill-extrusion',
+          source: 'tile-buildings-floors',
+          filter: ['==', ['get', 'feature_type'], 'floor'],
           paint: {
             'fill-extrusion-color': [
               'case',
-              ['==', ['get', 'structure_id'], structureId], '#ff2a5f',
-              '#38bdf8'
+              ['==', ['get', 'is_target_floor'], 1], '#ff2a5f',
+              ['==', ['get', 'is_target_bldg'], 1], '#38bdf8',
+              '#1e293b'
             ],
-            'fill-extrusion-height': ['*', ['get', 'height_m'], 2.5],
-            'fill-extrusion-base': 0,
+            'fill-extrusion-height': ['*', ['get', 'render_top_m'], 2.5],
+            'fill-extrusion-base': ['*', ['get', 'render_base_m'], 2.5],
             'fill-extrusion-vertical-gradient': true,
             'fill-extrusion-opacity': [
               'case',
-              ['==', ['get', 'structure_id'], structureId], 0.95,
+              ['==', ['get', 'is_target_floor'], 1], 0.98,
+              ['==', ['get', 'is_dimmed'], 1], 0.22,
               0.55
             ]
           }

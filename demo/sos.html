@@ -441,12 +441,6 @@
       <span>→</span>
     </a>
 
-    <a href="#" id="btnSosGoogle3D" class="btn-action btn-secondary" style="background: rgba(66, 133, 244, 0.15); border-color: rgba(66, 133, 244, 0.4); color: #93c5fd;" target="_blank">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/>
-      </svg>
-      <span>View in Google 3D Earth</span>
-    </a>
 
     <button id="btnShareLink" class="btn-action btn-secondary">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -581,8 +575,6 @@
 
         shareUrl = data.share_url;
         document.getElementById('btnOpenReceiver').href = data.receiver_path;
-        const elev = Math.round(data.dem_elevation_m || 530);
-        document.getElementById('btnSosGoogle3D').href = `https://earth.google.com/web/@${data.lat},${data.lon},${elev}a,350d,35y,0h,65t,0r`;
 
       } catch (err) {
         alert('Could not transmit SOS. Please retry or contact dispatch directly.');

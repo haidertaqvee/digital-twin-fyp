@@ -55,6 +55,13 @@ Kd 0.25 0.30 0.40
 Ks 0.10 0.10 0.10
 Ns 10.0
 d 1.0
+
+newmtl Mat_FloorSlab
+Ka 0.12 0.15 0.20
+Kd 0.18 0.22 0.28
+Ks 0.15 0.15 0.15
+Ns 15.0
+d 1.0
 """
 
 
@@ -108,6 +115,7 @@ def extrude_tile_to_obj(tile_name, geojson_path, out_dir):
         "Mat_Medium": [],
         "Mat_High": [],
         "Mat_Roof": [],
+        "Mat_FloorSlab": [],
     }
 
     def get_vert_id(x, y, z):
@@ -123,6 +131,7 @@ def extrude_tile_to_obj(tile_name, geojson_path, out_dir):
             continue
 
         h = float(row.get("height_m", 3.0))
+        num_floors = int(row.get("floors") or row.get("levels") or max(1, round(h / 3.0)))
         vclass = str(row.get("vuln_class", "low")).lower()
         wall_mat = "Mat_High" if vclass == "high" else ("Mat_Medium" if vclass == "medium" else "Mat_Low")
 
@@ -134,35 +143,43 @@ def extrude_tile_to_obj(tile_name, geojson_path, out_dir):
             if len(ext_coords) < 3:
                 continue
 
-            # 1. Extrude Wall Quads
             n = len(ext_coords)
-            for i in range(n):
-                p0 = ext_coords[i]
-                p1 = ext_coords[(i + 1) % n]
-
-                # Relative coordinates
-                x0, y0 = p0[0] - origin_x, p0[1] - origin_y
-                x1, y1 = p1[0] - origin_x, p1[1] - origin_y
-
-                # 4 vertices of the wall quad
-                v_b0 = get_vert_id(x0, y0, 0.0)
-                v_b1 = get_vert_id(x1, y1, 0.0)
-                v_r1 = get_vert_id(x1, y1, h)
-                v_r0 = get_vert_id(x0, y0, h)
-
-                # Two triangles per wall quad (CCW outward normal)
-                faces_by_mat[wall_mat].append((v_b0, v_b1, v_r1))
-                faces_by_mat[wall_mat].append((v_b0, v_r1, v_r0))
-
-            # 2. Triangulate Roof Cap at z=h
+            floor_height = h / max(1, num_floors)
             roof_tris = triangulate_polygon_roof(poly)
-            for tri in roof_tris:
-                t_coords = list(tri.exterior.coords)[:-1]
-                if len(t_coords) == 3:
-                    vt0 = get_vert_id(t_coords[0][0] - origin_x, t_coords[0][1] - origin_y, h)
-                    vt1 = get_vert_id(t_coords[1][0] - origin_x, t_coords[1][1] - origin_y, h)
-                    vt2 = get_vert_id(t_coords[2][0] - origin_x, t_coords[2][1] - origin_y, h)
-                    faces_by_mat["Mat_Roof"].append((vt0, vt1, vt2))
+
+            # Extrude distinct floor tiers with intermediate structural slabs
+            for fl in range(num_floors):
+                z_bot = fl * floor_height
+                z_top = (fl + 1) * floor_height
+
+                # 1. Floor Wall Quads
+                for i in range(n):
+                    p0 = ext_coords[i]
+                    p1 = ext_coords[(i + 1) % n]
+
+                    # Relative coordinates
+                    x0, y0 = p0[0] - origin_x, p0[1] - origin_y
+                    x1, y1 = p1[0] - origin_x, p1[1] - origin_y
+
+                    # 4 vertices of the floor wall quad
+                    v_b0 = get_vert_id(x0, y0, z_bot)
+                    v_b1 = get_vert_id(x1, y1, z_bot)
+                    v_r1 = get_vert_id(x1, y1, z_top)
+                    v_r0 = get_vert_id(x0, y0, z_top)
+
+                    # Two triangles per wall quad (CCW outward normal)
+                    faces_by_mat[wall_mat].append((v_b0, v_b1, v_r1))
+                    faces_by_mat[wall_mat].append((v_b0, v_r1, v_r0))
+
+                # 2. Intermediate Floor Slabs or Roof Cap
+                mat_key = "Mat_Roof" if (fl == num_floors - 1) else "Mat_FloorSlab"
+                for tri in roof_tris:
+                    t_coords = list(tri.exterior.coords)[:-1]
+                    if len(t_coords) == 3:
+                        vt0 = get_vert_id(t_coords[0][0] - origin_x, t_coords[0][1] - origin_y, z_top)
+                        vt1 = get_vert_id(t_coords[1][0] - origin_x, t_coords[1][1] - origin_y, z_top)
+                        vt2 = get_vert_id(t_coords[2][0] - origin_x, t_coords[2][1] - origin_y, z_top)
+                        faces_by_mat[mat_key].append((vt0, vt1, vt2))
 
     # Write OBJ File
     with open(obj_path, "w", encoding="utf-8") as f:
