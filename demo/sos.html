@@ -504,26 +504,26 @@
           updateDemPreview(userLat, userLon);
         },
         (err) => {
-          // Default to Islamabad coordinates when running locally in Pakistan
-          userLat = 33.6408;
-          userLon = 73.1537;
-          document.getElementById('gpsStatus').textContent = `Islamabad (IST Campus: ${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
+          // Default to Institute of Space Technology (IST) coordinates when running in Pakistan
+          userLat = 33.5198;
+          userLon = 73.1761;
+          document.getElementById('gpsStatus').textContent = `IST Campus, Islamabad (${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
           updateDemPreview(userLat, userLon);
         },
         { enableHighAccuracy: true, timeout: 6000 }
       );
     } else {
-      userLat = 33.6408;
-      userLon = 73.1537;
-      document.getElementById('gpsStatus').textContent = `Islamabad (IST Campus: ${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
+      userLat = 33.5198;
+      userLon = 73.1761;
+      document.getElementById('gpsStatus').textContent = `IST Campus, Islamabad (${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
       updateDemPreview(userLat, userLon);
     }
 
     // Islamabad Preset button
     document.getElementById('btnIsbLocation').addEventListener('click', () => {
-      userLat = 33.6408;
-      userLon = 73.1537;
-      document.getElementById('gpsStatus').textContent = `Islamabad (IST Campus: ${userLat}, ${userLon})`;
+      userLat = 33.5198;
+      userLon = 73.1761;
+      document.getElementById('gpsStatus').textContent = `IST Campus, Islamabad (${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
       updateDemPreview(userLat, userLon);
     });
 

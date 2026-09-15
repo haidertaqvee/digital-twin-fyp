@@ -48,46 +48,60 @@ except ImportError:
 _ADDR_CACHE = {}
 
 
-def resolve_address_nominatim(lat: float, lon: float) -> str:
-    """Reverse-geocode global coordinates to human-readable address with caching."""
-    cache_key = (round(lat, 4), round(lon, 4))
+def resolve_address_nominatim(lat: float, lon: float) -> tuple:
+    """
+    Reverse-geocode global coordinates with building-level accuracy.
+    Returns (address: str, block_id: str, structure_prefix: str).
+    """
+    cache_key = (round(lat, 5), round(lon, 5))
     if cache_key in _ADDR_CACHE:
         return _ADDR_CACHE[cache_key]
 
-    # Quick regional shortcuts for zero network latency
-    if 33.5 <= lat <= 33.8 and 73.0 <= lon <= 73.3:
-        addr = "Sector H-12 / IST Campus, Islamabad Capital Territory, Pakistan"
-        _ADDR_CACHE[cache_key] = addr
-        return addr
-
     try:
         import urllib.request
-        url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=16&accept-language=en"
+        url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18&accept-language=en"
         req = urllib.request.Request(url, headers={"User-Agent": "TerraTwin-FYP/1.0"})
-        with urllib.request.urlopen(req, timeout=1.5) as resp:
+        with urllib.request.urlopen(req, timeout=2.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             addr_data = data.get("address", {})
-            parts = []
-            for k in ["road", "neighbourhood", "suburb", "village", "city", "state", "country"]:
-                val = addr_data.get(k)
-                if val and val not in parts:
-                    parts.append(val)
-            if parts:
-                resolved = ", ".join(parts[:4])
-                _ADDR_CACHE[cache_key] = resolved
-                return resolved
+
+            building = addr_data.get("building") or addr_data.get("amenity") or addr_data.get("office") or addr_data.get("university") or addr_data.get("college")
+            road = addr_data.get("road") or addr_data.get("pedestrian")
+            house_num = addr_data.get("house_number")
+            suburb = addr_data.get("suburb") or addr_data.get("neighbourhood") or addr_data.get("residential") or addr_data.get("village") or addr_data.get("town")
+            municipality = addr_data.get("municipality")
+            city = addr_data.get("city") or addr_data.get("state")
+            country = addr_data.get("country")
+
+            road_full = f"{house_num} {road}".strip() if (house_num and road) else road
+            parts = [p for p in [building, road_full, suburb, city, country] if p and p not in [""]]
+            
+            resolved_addr = ", ".join(parts) if parts else (data.get("display_name") or f"Structure at {lat:.5f} N, {lon:.5f} E")
+            block = suburb or municipality or (city if city else "Local Sector")
+            
+            prefix = "IST" if (building and "space" in building.lower()) else ("ISB" if (city and "islamabad" in city.lower()) else "BLD")
+            result = (resolved_addr, block, prefix)
+            _ADDR_CACHE[cache_key] = result
+            return result
     except Exception:
         pass
 
-    # Fallback regional approximations
-    if 33.3 <= lat <= 33.9 and 72.8 <= lon <= 73.5:
-        resolved = "Islamabad Capital Territory, Pakistan"
+    # Precise fallback bounding boxes if offline
+    if 33.510 <= lat <= 33.530 and 73.165 <= lon <= 73.190:
+        res = ("Institute of Space Technology, Islamabad Expressway, Zaraj Town, Islamabad, Pakistan", "IST Campus", "IST")
+    elif 33.630 <= lat <= 33.660 and 72.970 <= lon <= 73.010:
+        res = ("NUST Campus, Sector H-12, Islamabad, Pakistan", "Sector H-12", "NUST")
+    elif 33.700 <= lat <= 33.740 and 73.040 <= lon <= 73.080:
+        res = ("Blue Area / Sector F-7, Islamabad, Pakistan", "Sector F-7", "ISB")
+    elif 33.3 <= lat <= 33.9 and 72.8 <= lon <= 73.5:
+        res = (f"Structure at {lat:.5f} N, {lon:.5f} E, Islamabad Capital Territory, Pakistan", "Islamabad Zone", "ISB")
     elif 36.0 <= lat <= 36.4 and -115.4 <= lon <= -115.0:
-        resolved = "Las Vegas Metropolitan Area, Nevada, USA"
+        res = (f"Structure at {lat:.5f} N, {lon:.5f} W, Las Vegas Metropolitan Area, Nevada, USA", "Las Vegas Metro", "LV")
     else:
-        resolved = f"Structure at {lat:.5f} N, {lon:.5f} E"
-    _ADDR_CACHE[cache_key] = resolved
-    return resolved
+        res = (f"Structure at {lat:.5f} N, {lon:.5f} E", "Global Grid", "EXT")
+
+    _ADDR_CACHE[cache_key] = res
+    return res
 
 
 class ReverseGeocoder:
@@ -121,28 +135,34 @@ class ReverseGeocoder:
 
         if not in_local_aoi:
             # Query is outside the local Las Vegas tile dataset (e.g. Islamabad, Pakistan)
-            # Never clamp the user's floor or snap to a building thousands of kilometers away.
             if baro_floor is not None:
                 try:
-                    bf = max(1, int(baro_floor))
+                    bf = int(baro_floor)
                 except (TypeError, ValueError):
                     bf = 1
                 est_floor = bf
-                floors = max(bf, 4)
+                floors = max(bf, 4) if bf > 0 else 4
             else:
                 est_floor = "unknown"
                 floors = 4
 
             height_m = float(floors * LEVEL_HEIGHT_M)
             roof_elev = round(dem_elev + height_m, 1)
-            floor_elev = round(dem_elev + ((est_floor - 1) * LEVEL_HEIGHT_M), 1) if isinstance(est_floor, (int, float)) else None
-            address = resolve_address_nominatim(lat, lon)
+
+            if isinstance(est_floor, int):
+                if est_floor == 0:
+                    # Basement is 3.0m below ground elevation
+                    floor_elev = round(dem_elev - LEVEL_HEIGHT_M, 1)
+                else:
+                    floor_elev = round(dem_elev + ((est_floor - 1) * LEVEL_HEIGHT_M), 1)
+            else:
+                floor_elev = None
+
+            address, block_id, prefix = resolve_address_nominatim(lat, lon)
 
             # Assign structured ID
-            loc_prefix = "ISB" if (33.3 <= lat <= 33.9 and 72.8 <= lon <= 73.5) else "EXT"
             spatial_hash = (abs(int(lat * 10000)) + abs(int(lon * 10000))) % 10000
-            structure_id = f"{loc_prefix}-B{floors}-{spatial_hash:04d}"
-            block_id = "Sector H-12" if loc_prefix == "ISB" else "Regional Grid"
+            structure_id = f"{prefix}-B{floors}-{spatial_hash:04d}"
 
             return {
                 "address": address,
@@ -190,16 +210,26 @@ class ReverseGeocoder:
         floors = int(row.get("floors", row.get("levels", 1)))
         if baro_floor is not None:
             try:
-                bf = max(1, int(baro_floor))
+                bf = int(baro_floor)
             except (TypeError, ValueError):
                 bf = None
-            est_floor = min(bf, floors) if bf else "unknown"
+            if bf is not None:
+                est_floor = min(bf, floors) if bf > 0 else 0
+            else:
+                est_floor = "unknown"
         else:
             est_floor = "unknown"
 
         height_m = float(row.get("height_m", floors * LEVEL_HEIGHT_M))
         roof_elev = round(dem_elev + height_m, 1)
-        floor_elev = round(dem_elev + ((est_floor - 1) * LEVEL_HEIGHT_M), 1) if isinstance(est_floor, (int, float)) else None
+
+        if isinstance(est_floor, int):
+            if est_floor == 0:
+                floor_elev = round(dem_elev - LEVEL_HEIGHT_M, 1)
+            else:
+                floor_elev = round(dem_elev + ((est_floor - 1) * LEVEL_HEIGHT_M), 1)
+        else:
+            floor_elev = None
 
         address = str(row.get("address", ""))
         if not inside:
