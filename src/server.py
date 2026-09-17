@@ -439,8 +439,10 @@ def main():
     import uvicorn
 
     parser = argparse.ArgumentParser(description="Run TerraTwin SOS FastAPI server")
+    import os
+    port_default = int(os.environ.get("PORT", 8000))
     parser.add_argument("--host", default="0.0.0.0", help="Host IP to bind to")
-    parser.add_argument("--port", type=int, default=8000, help="Port to listen on")
+    parser.add_argument("--port", type=int, default=port_default, help="Port to listen on")
     parser.add_argument("--demo-dir", type=Path, default=DEFAULT_DEMO_DIR, help="Path to demo_tiles directory")
     parser.add_argument("--web-dir", type=Path, default=DEFAULT_WEB_DIR, help="Path to demo/ static directory")
     parser.add_argument("--no-seed", action="store_true", help="Do not pre-seed demo incidents")
