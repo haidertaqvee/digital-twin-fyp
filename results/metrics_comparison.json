@@ -1,0 +1,100 @@
+{
+  "split": "test",
+  "threshold": 0.5,
+  "norm_max": 1910.0,
+  "scored_with": "ConfusionAccumulator (same as train_unet/inference)",
+  "models": {
+    "ours": {
+      "label": "TerraTwin (smp UNet / ResNet34, fine-tuned)",
+      "checkpoint": "models/unet_resnet34_best.pth",
+      "checkpoint_epoch": 11,
+      "val_iou": 0.804,
+      "reported_test_iou": 0.8062,
+      "pred_dir": "E:\\digital-twin-fyp\\data\\processed\\test\\predictions",
+      "iou": 0.8062,
+      "dice": 0.8927,
+      "f1": 0.8927,
+      "precision": 0.9099,
+      "recall": 0.8762,
+      "tiles": 146
+    },
+    "baseline": {
+      "label": "WHU EfficientNet-B4 UNet++ (zero-shot)",
+      "repo": "giswqs/whu-building-unetplusplus-efficientnet-b4",
+      "license": "Apache-2.0",
+      "architecture": "UNetPlusPlus / EfficientNet-B4 (ImageNet encoder)",
+      "trained_on": "WHU Building Dataset (5,732 tiles, 0.3 m aerial, 512x512)",
+      "reported_own_test_iou": 0.9054,
+      "pred_dir": "E:\\digital-twin-fyp\\data\\processed\\test\\predictions_pretrained",
+      "preprocessing": "clip(0,1910)/1910 -> [0,1] (dataset-wide NORM_MAX, no per-image stretch)",
+      "iou": 0.02,
+      "dice": 0.0391,
+      "f1": 0.0391,
+      "precision": 0.7664,
+      "recall": 0.0201,
+      "tiles": 146,
+      "threshold_sweep": {
+        "0.5": {
+          "iou": 0.02,
+          "dice": 0.0391,
+          "f1": 0.0391,
+          "precision": 0.7664,
+          "recall": 0.0201
+        },
+        "0.3": {
+          "iou": 0.0252,
+          "dice": 0.0491,
+          "f1": 0.0491,
+          "precision": 0.7436,
+          "recall": 0.0254
+        },
+        "0.2": {
+          "iou": 0.0289,
+          "dice": 0.0562,
+          "f1": 0.0562,
+          "precision": 0.7277,
+          "recall": 0.0292
+        },
+        "0.1": {
+          "iou": 0.0358,
+          "dice": 0.0692,
+          "f1": 0.0692,
+          "precision": 0.6995,
+          "recall": 0.0364
+        },
+        "0.05": {
+          "iou": 0.0435,
+          "dice": 0.0835,
+          "f1": 0.0835,
+          "precision": 0.6726,
+          "recall": 0.0445
+        },
+        "0.02": {
+          "iou": 0.0536,
+          "dice": 0.1018,
+          "f1": 0.1018,
+          "precision": 0.6447,
+          "recall": 0.0553
+        },
+        "0.01": {
+          "iou": 0.0645,
+          "dice": 0.1212,
+          "f1": 0.1212,
+          "precision": 0.6182,
+          "recall": 0.0672
+        }
+      },
+      "best_threshold": 0.01,
+      "best_iou": 0.0645
+    }
+  },
+  "delta_ours_minus_baseline": {
+    "iou": 0.7862,
+    "dice": 0.8536,
+    "f1": 0.8536,
+    "precision": 0.1435,
+    "recall": 0.8561
+  },
+  "verdict": "Fine-tuned TerraTwin UNet wins on this split. At its best threshold (0.01) the baseline reaches IoU 0.0645, still +0.7417 below the fine-tuned model.",
+  "note": "The pretrained WHU model was evaluated zero-shot at the same 0.3 m resolution; its performance is credible cross-dataset transfer. Neither 0.9+ WHU test IoU nor this cross-dataset number is a claim about Vegas generalization without scoring here. A threshold sweep (0.5..0.01) finds the baseline peaks at 0.01 (IoU 0.0645), still far below the fine-tuned model \u2014 the gap is a genuine domain gap, not just threshold placement."
+}

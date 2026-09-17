@@ -1,5 +1,7 @@
 data/raw/
-data/processed/
+data/processed/*
+!data/processed/demo_tiles/
+!data/processed/demo_tiles/**
 models/
 __pycache__/
 *.pyc
@@ -17,3 +19,4 @@ envs/
 # Vendored upstream repos — separate git clones, not submodules
 satnerf/
 sat-bundleadjust/
+results/predict_pretrained-smoke.log
