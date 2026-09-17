@@ -71,25 +71,31 @@ app.add_middleware(
 DEFAULT_WEB_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/demo", StaticFiles(directory=str(DEFAULT_WEB_DIR), html=True), name="demo")
 
+# Mount data directory for direct static access
+DATA_DIR = ROOT_DIR / "data"
+if DATA_DIR.exists():
+    app.mount("/data", StaticFiles(directory=str(DATA_DIR)), name="data")
+
 
 @app.get("/")
-def root_redirect():
-    return RedirectResponse(url="/demo/index.html")
+def root():
+    return FileResponse(DEFAULT_WEB_DIR / "index.html", media_type="text/html")
 
 
 @app.get("/index.html")
-def root_index_redirect():
-    return RedirectResponse(url="/demo/index.html")
+def root_index():
+    return FileResponse(DEFAULT_WEB_DIR / "index.html", media_type="text/html")
 
 
 @app.get("/sos.html")
-def root_sos_redirect():
-    return RedirectResponse(url="/demo/sos.html")
+def root_sos():
+    return FileResponse(DEFAULT_WEB_DIR / "sos.html", media_type="text/html")
 
 
 @app.get("/receiver.html")
-def root_receiver_redirect():
-    return RedirectResponse(url="/demo/receiver.html")
+def root_receiver():
+    return FileResponse(DEFAULT_WEB_DIR / "receiver.html", media_type="text/html")
+
 
 
 # State & Caches for sub-millisecond responses
