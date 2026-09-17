@@ -865,7 +865,7 @@
         Run AI
       </button>
 
-      <a href="/demo/sos.html" target="_blank" class="btn btn-sos">
+      <a href="sos.html" target="_blank" class="btn btn-sos">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
@@ -2230,7 +2230,7 @@
               <div><strong>DEM Ground MSL:</strong> <span style="color: var(--cyan);">${inc.dem_elevation_m != null ? inc.dem_elevation_m + ' m' : 'N/A'}</span></div>
               <div><strong>Broadcast Age:</strong> ${inc.age_minutes} min ago</div>
             </div>
-            <a href="/r/${inc.id}" target="_blank" class="btn btn-sos" style="display: block; text-align: center; padding: 6px; font-size: 0.75rem;">Open Rescuer HUD</a>
+            <a href="receiver.html?id=${inc.id || inc.incident_id}" target="_blank" class="btn btn-sos" style="display: block; text-align: center; padding: 6px; font-size: 0.75rem;">Open Rescuer HUD</a>
           `);
 
           const marker = new maplibregl.Marker({ element: el })

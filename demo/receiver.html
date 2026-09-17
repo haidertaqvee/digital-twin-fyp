@@ -306,7 +306,7 @@
         <div class="pulse-dot"></div>
         <span id="badgeText">EMERGENCY TARGET</span>
       </div>
-      <a href="/demo/index.html" style="font-size: 0.75rem; color: var(--text-muted); text-decoration: none;">Twin View ↗</a>
+      <a href="index.html" style="font-size: 0.75rem; color: var(--text-muted); text-decoration: none;">Twin View ↗</a>
     </div>
 
     <div>
@@ -394,9 +394,15 @@
   </div>
 
   <script>
-    // Extract incident ID from URL path /r/{id} or ?id={id}
-    const pathParts = window.location.pathname.split('/r/');
-    let incidentId = pathParts.length > 1 && pathParts[1] ? pathParts[1].replace('/', '') : new URLSearchParams(window.location.search).get('id');
+    // Extract incident ID from URL params ?id=, ?incident=, or path /r/{id}
+    const urlParams = new URLSearchParams(window.location.search);
+    let incidentId = urlParams.get('id') || urlParams.get('incident');
+    if (!incidentId) {
+      const pathParts = window.location.pathname.split('/r/');
+      if (pathParts.length > 1 && pathParts[1]) {
+        incidentId = pathParts[1].replace('/', '');
+      }
+    }
 
     // Default fallback to first pre-seeded incident if unspecified
     if (!incidentId) {
@@ -406,12 +412,20 @@
     let map;
     let incidentData = null;
 
-    // Initialize MapLibre
+    // Initialize MapLibre with Esri Imagery base + Google Hybrid overlay
     map = new maplibregl.Map({
       container: 'map',
       style: {
         version: 8,
         sources: {
+          'esri-imagery': {
+            type: 'raster',
+            tiles: [
+              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: 'Esri World Imagery'
+          },
           'google-hybrid': {
             type: 'raster',
             tiles: [
@@ -425,6 +439,13 @@
           }
         },
         layers: [
+          {
+            id: 'esri-layer',
+            type: 'raster',
+            source: 'esri-imagery',
+            minzoom: 0,
+            maxzoom: 20
+          },
           {
             id: 'google-hybrid-layer',
             type: 'raster',
@@ -674,8 +695,15 @@
           // GitHub Pages static fallback
           const base = window.location.pathname.includes('/demo/') ? '../data/processed/demo_tiles/' : 'data/processed/demo_tiles/';
           const cleanTile = (tile || 'tile_AOI_2_Vegas_img4174').replace('.geojson', '') + '.geojson';
-          const fbRes = await fetch(base + cleanTile).catch(() => fetch(base + 'all_demo_buildings.geojson'));
-          receiverBuildingGeojson = await fbRes.json();
+          let fbRes = await fetch(base + cleanTile).catch(() => null);
+          if (!fbRes || !fbRes.ok) {
+            fbRes = await fetch(base + 'all_demo_buildings.geojson').catch(() => null);
+          }
+          if (fbRes && fbRes.ok) {
+            receiverBuildingGeojson = await fbRes.json();
+          } else {
+            receiverBuildingGeojson = { type: 'FeatureCollection', features: [] };
+          }
         }
         const tf = parseInt(incidentData.est_floor, 10) || 1;
         currentSelectedReceiverFloor = tf;

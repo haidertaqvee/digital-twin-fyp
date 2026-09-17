@@ -651,8 +651,10 @@
           notice.style.display = 'none';
         }
 
-        shareUrl = data.share_url;
-        document.getElementById('btnOpenReceiver').href = data.receiver_path;
+        const incIdStr = data.incident_id || data.id;
+        const receiverTarget = `receiver.html?id=${incIdStr}`;
+        shareUrl = window.location.href.split('sos.html')[0] + receiverTarget;
+        document.getElementById('btnOpenReceiver').href = receiverTarget;
 
       } catch (err) {
         alert('Could not transmit SOS. Please retry or contact dispatch directly.');
