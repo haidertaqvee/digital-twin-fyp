@@ -487,19 +487,44 @@
 
     async function loadIncident() {
       try {
-        let res = await fetch(`/api/sos/${incidentId}`);
-        if (!res.ok) {
-          // Fallback to latest active incident
-          const activeRes = await fetch('/api/sos/active');
-          const activeData = await activeRes.json();
-          if (activeData.incidents && activeData.incidents.length > 0) {
-            incidentId = activeData.incidents[0].id;
-            res = await fetch(`/api/sos/${incidentId}`);
+        let res = null;
+        try {
+          res = await fetch(`/api/sos/${incidentId}`);
+          if (!res.ok) {
+            const activeRes = await fetch('/api/sos/active');
+            if (activeRes.ok) {
+              const activeData = await activeRes.json();
+              if (activeData.incidents && activeData.incidents.length > 0) {
+                incidentId = activeData.incidents[0].id || activeData.incidents[0].incident_id;
+                res = await fetch(`/api/sos/${incidentId}`);
+              }
+            }
           }
+        } catch (e) {}
+
+        if (res && res.ok) {
+          incidentData = await res.json();
+        } else {
+          // GitHub Pages / static standalone fallback
+          const localList = JSON.parse(localStorage.getItem('terratwin_sos_incidents') || '[]');
+          const matched = localList.find(i => i.incident_id === incidentId || i.id === incidentId);
+          incidentData = matched || localList[0] || {
+            incident_id: incidentId || "demo-a01",
+            address: "610 S 7th St, Sector 7",
+            emergency_type: "flood",
+            est_floor: 3,
+            height_m: 12.0,
+            dem_elevation_m: 615.4,
+            floor_elevation_m: 624.4,
+            lat: 36.1648,
+            lon: -115.1385,
+            structure_id: "STR-001",
+            block_id: "BLK-SEC7",
+            vuln_class: "high",
+            vuln_score: 0.78,
+            tile: "tile_AOI_2_Vegas_img4174.geojson"
+          };
         }
-        
-        if (!res.ok) throw new Error('Incident not found');
-        incidentData = await res.json();
 
         // Update HUD
         document.getElementById('incidentAddress').textContent = incidentData.address;
@@ -642,8 +667,16 @@
 
     async function loadBuildingFootprint(tile, structureId) {
       try {
-        const res = await fetch(`/api/tile/${tile}`);
-        receiverBuildingGeojson = await res.json();
+        let res = await fetch(`/api/tile/${tile}`).catch(() => null);
+        if (res && res.ok) {
+          receiverBuildingGeojson = await res.json();
+        } else {
+          // GitHub Pages static fallback
+          const base = window.location.pathname.includes('/demo/') ? '../data/processed/demo_tiles/' : 'data/processed/demo_tiles/';
+          const cleanTile = (tile || 'tile_AOI_2_Vegas_img4174').replace('.geojson', '') + '.geojson';
+          const fbRes = await fetch(base + cleanTile).catch(() => fetch(base + 'all_demo_buildings.geojson'));
+          receiverBuildingGeojson = await fbRes.json();
+        }
         const tf = parseInt(incidentData.est_floor, 10) || 1;
         currentSelectedReceiverFloor = tf;
 

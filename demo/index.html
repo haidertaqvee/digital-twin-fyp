@@ -1681,17 +1681,33 @@
       orbitAnimId = requestAnimationFrame(frame);
     }
 
+    // Helper to get static data base path whether running under /demo/ or root /
+    function getStaticDataBase() {
+      return window.location.pathname.includes('/demo/') ? '../data/processed/demo_tiles/' : 'data/processed/demo_tiles/';
+    }
+
     // Fetch and populate available tile list
     async function loadTileManifest() {
       try {
-        const res = await fetch('/api/tiles');
-        const data = await res.json();
+        let data = null;
+        try {
+          const res = await fetch('/api/tiles');
+          if (res.ok) data = await res.json();
+        } catch (e) {}
+
+        if (!data || !data.tiles) {
+          try {
+            const res = await fetch(getStaticDataBase() + '_manifest.json');
+            if (res.ok) data = await res.json();
+          } catch (e) {}
+        }
+
         const select = document.getElementById('tileSelect');
         select.innerHTML = `
           <option value="all">Sector 7 (All 1,016 Addressed Buildings)</option>
           <option value="predicted_all">Full AI Twin (3,621 Buildings / 140 Tiles)</option>
         `;
-        if (data.tiles) {
+        if (data && data.tiles) {
           data.tiles.forEach(t => {
             const opt = document.createElement('option');
             opt.value = t.file;
@@ -1720,8 +1736,18 @@
         url = `/api/tile/${tileFile}`;
       }
       try {
-        const res = await fetch(url);
-        currentGeoJson = await res.json();
+        let res = await fetch(url).catch(() => null);
+        if (res && res.ok) {
+          currentGeoJson = await res.json();
+        } else {
+          // GitHub Pages static fallback
+          let fbFile = 'all_demo_buildings.geojson';
+          if (tileFile && tileFile !== 'all' && tileFile !== 'predicted_all') {
+            fbFile = tileFile.endsWith('.geojson') ? tileFile : `${tileFile}.geojson`;
+          }
+          const fbRes = await fetch(getStaticDataBase() + fbFile);
+          currentGeoJson = await fbRes.json();
+        }
 
         // Dynamically update building counters
         if (currentGeoJson && currentGeoJson.features) {
@@ -2122,8 +2148,48 @@
     // Refresh and display active live SOS pins on the map
     async function refreshActiveIncidents() {
       try {
-        const res = await fetch('/api/sos/active');
-        const data = await res.json();
+        let data = null;
+        try {
+          const res = await fetch('/api/sos/active');
+          if (res.ok) data = await res.json();
+        } catch (e) {}
+
+        if (!data) {
+          // GitHub Pages static fallback: combine local user-submitted SOS with demo beacons
+          const localIncidents = JSON.parse(localStorage.getItem('terratwin_sos_incidents') || '[]');
+          const defaultIncidents = [
+            {
+              incident_id: "demo-a01",
+              address: "610 S 7th St, Sector 7",
+              emergency_type: "flood",
+              est_floor: 3,
+              height_m: 12.0,
+              dem_elevation_m: 615.4,
+              floor_elevation_m: 624.4,
+              lat: 36.1648,
+              lon: -115.1385,
+              timestamp: new Date().toISOString(),
+              age_minutes: 3,
+              recency: "recency-fresh"
+            },
+            {
+              incident_id: "demo-b02",
+              address: "812 Clark Ave, Sector 7",
+              emergency_type: "earthquake",
+              est_floor: 2,
+              height_m: 8.5,
+              dem_elevation_m: 614.2,
+              floor_elevation_m: 620.2,
+              lat: 36.1662,
+              lon: -115.1360,
+              timestamp: new Date(Date.now() - 15 * 60000).toISOString(),
+              age_minutes: 15,
+              recency: "recency-recent"
+            }
+          ];
+          const allInc = [...localIncidents, ...defaultIncidents];
+          data = { count: allInc.length, incidents: allInc };
+        }
         
         latestIncidents = data.incidents || [];
         refreshMultiFloorLayers();
