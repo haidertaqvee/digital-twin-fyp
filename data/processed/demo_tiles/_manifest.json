@@ -1,0 +1,127 @@
+{
+  "sector": "7",
+  "eps_m": 30.0,
+  "roads": "osm-drive-cached",
+  "tiles": [
+    {
+      "tile": "AOI_2_Vegas_img4174",
+      "file": "tile_AOI_2_Vegas_img4174.geojson",
+      "buildings": 59,
+      "blocks": 3
+    },
+    {
+      "tile": "AOI_2_Vegas_img4059",
+      "file": "tile_AOI_2_Vegas_img4059.geojson",
+      "buildings": 57,
+      "blocks": 3
+    },
+    {
+      "tile": "AOI_2_Vegas_img4906",
+      "file": "tile_AOI_2_Vegas_img4906.geojson",
+      "buildings": 55,
+      "blocks": 3
+    },
+    {
+      "tile": "AOI_2_Vegas_img3310",
+      "file": "tile_AOI_2_Vegas_img3310.geojson",
+      "buildings": 55,
+      "blocks": 4
+    },
+    {
+      "tile": "AOI_2_Vegas_img2456",
+      "file": "tile_AOI_2_Vegas_img2456.geojson",
+      "buildings": 54,
+      "blocks": 6
+    },
+    {
+      "tile": "AOI_2_Vegas_img6085",
+      "file": "tile_AOI_2_Vegas_img6085.geojson",
+      "buildings": 54,
+      "blocks": 4
+    },
+    {
+      "tile": "AOI_2_Vegas_img3534",
+      "file": "tile_AOI_2_Vegas_img3534.geojson",
+      "buildings": 53,
+      "blocks": 6
+    },
+    {
+      "tile": "AOI_2_Vegas_img2893",
+      "file": "tile_AOI_2_Vegas_img2893.geojson",
+      "buildings": 53,
+      "blocks": 5
+    },
+    {
+      "tile": "AOI_2_Vegas_img1225",
+      "file": "tile_AOI_2_Vegas_img1225.geojson",
+      "buildings": 51,
+      "blocks": 4
+    },
+    {
+      "tile": "AOI_2_Vegas_img3399",
+      "file": "tile_AOI_2_Vegas_img3399.geojson",
+      "buildings": 51,
+      "blocks": 2
+    },
+    {
+      "tile": "AOI_2_Vegas_img1786",
+      "file": "tile_AOI_2_Vegas_img1786.geojson",
+      "buildings": 50,
+      "blocks": 6
+    },
+    {
+      "tile": "AOI_2_Vegas_img1220",
+      "file": "tile_AOI_2_Vegas_img1220.geojson",
+      "buildings": 49,
+      "blocks": 4
+    },
+    {
+      "tile": "AOI_2_Vegas_img2632",
+      "file": "tile_AOI_2_Vegas_img2632.geojson",
+      "buildings": 49,
+      "blocks": 6
+    },
+    {
+      "tile": "AOI_2_Vegas_img1089",
+      "file": "tile_AOI_2_Vegas_img1089.geojson",
+      "buildings": 48,
+      "blocks": 6
+    },
+    {
+      "tile": "AOI_2_Vegas_img1334",
+      "file": "tile_AOI_2_Vegas_img1334.geojson",
+      "buildings": 48,
+      "blocks": 7
+    },
+    {
+      "tile": "AOI_2_Vegas_img1265",
+      "file": "tile_AOI_2_Vegas_img1265.geojson",
+      "buildings": 47,
+      "blocks": 7
+    },
+    {
+      "tile": "AOI_2_Vegas_img4881",
+      "file": "tile_AOI_2_Vegas_img4881.geojson",
+      "buildings": 47,
+      "blocks": 6
+    },
+    {
+      "tile": "AOI_2_Vegas_img3959",
+      "file": "tile_AOI_2_Vegas_img3959.geojson",
+      "buildings": 46,
+      "blocks": 5
+    },
+    {
+      "tile": "AOI_2_Vegas_img5094",
+      "file": "tile_AOI_2_Vegas_img5094.geojson",
+      "buildings": 45,
+      "blocks": 6
+    },
+    {
+      "tile": "AOI_2_Vegas_img2865",
+      "file": "tile_AOI_2_Vegas_img2865.geojson",
+      "buildings": 45,
+      "blocks": 4
+    }
+  ]
+}
