@@ -71,6 +71,27 @@ app.add_middleware(
 DEFAULT_WEB_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/demo", StaticFiles(directory=str(DEFAULT_WEB_DIR), html=True), name="demo")
 
+
+@app.get("/")
+def root_redirect():
+    return RedirectResponse(url="/demo/index.html")
+
+
+@app.get("/index.html")
+def root_index_redirect():
+    return RedirectResponse(url="/demo/index.html")
+
+
+@app.get("/sos.html")
+def root_sos_redirect():
+    return RedirectResponse(url="/demo/sos.html")
+
+
+@app.get("/receiver.html")
+def root_receiver_redirect():
+    return RedirectResponse(url="/demo/receiver.html")
+
+
 # State & Caches for sub-millisecond responses
 geocoder: Optional[ReverseGeocoder] = None
 incidents_db = {}  # incident_id -> dict
