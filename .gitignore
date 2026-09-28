@@ -1,14 +1,16 @@
 data/raw/
+data/interim/*
+!data/interim/.gitkeep
 data/processed/*
-!data/processed/demo_tiles/
-!data/processed/demo_tiles/**
 models/
+terratwin_sos_archive/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
 .env
 *.pth
 *.tar.gz
+node_modules/
 
 # Checked-in conda environment (machine-specific, not source)
 envs/

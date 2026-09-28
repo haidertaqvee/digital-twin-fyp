@@ -1,33 +1,32 @@
-﻿# TerraTwin SOS — Antigravity Workspace Environment
+# Digital Twin FYP — Antigravity Workspace Environment
 
 ## 1. Project Overview
-TerraTwin SOS is an end-to-end 3D Geospatial Digital Twin & Multi-Hazard Emergency Dispatch System.
-- **Backend:** FastAPI, GeoPandas, Shapely, PyProj, Pillow, Requests (Python 3.10).
-- **Frontend:** HTML5, Vanilla JavaScript, MapLibre GL JS (v4.7.1), Three.js (r128), OrbitControls.
-- **Topography & Hazards:** AWS Open Data Terrarium DEM raster elevation, USGS real-time seismic feed, 3D Flood Inundation Simulator.
-- **Target Hardware / Sim-to-Real:** NVIDIA Jetson Orin Nano, MAVLink telemetry protocol, Nebius AI Cloud / Token Factory.
+**BS Space Science Final Year Project Thesis**
+- **Thesis Title:** Multi-Agent Deep Reinforcement Learning for UAV Swarm Navigation in a Geospatial Digital Twin
+- **Authors / Team:**
+  - Haider Taqveen (Reg. No. 230601020)
+  - Mashaf Majeed (Reg. No. 230601017)
+- **Supervisor:** Dr. Munawar Ali Shah
+- **Institution:** Institute of Space Technology (IST), Islamabad
+- **Core Pipeline:**
+  1. Satellite semantic feature extraction & instance segmentation (`src/data_prep/`, `src/models/`)
+  2. 3D digital twin mesh reconstruction & DEM ground elevation (`src/geometry/`)
+  3. Real-time physics simulation & Unity URP export (`src/physics_sim/`)
+  4. Multi-agent reinforcement learning (MADRL) for cooperative UAV swarm navigation
 
 ## 2. Antigravity Environment Setup
 - **Python Environment:** `E:\digital-twin-fyp\envs\digital-twin\python.exe`
-- **Primary Server Command:**
-  ```powershell
-  & E:\digital-twin-fyp\envs\digital-twin\python.exe src/server.py --port 8000 --host 0.0.0.0
-  ```
-- **Batch Launcher:** `start_offline.bat`
+- **Working Directory:** `E:\digital-twin-fyp`
+- **Archived SOS Launcher:** `.\run_sos_dashboards.bat`
 
-## 3. Core Endpoints & Web Apps
-- **3D Twin Explorer:** `http://localhost:8000/index.html` (or `https://haidertaqvee.github.io/terratwin-sos/index.html`)
-- **Citizen SOS Beacon:** `http://localhost:8000/sos.html` (or `https://haidertaqvee.github.io/terratwin-sos/sos.html`)
-- **Rescuer Tactical HUD:** `http://localhost:8000/receiver.html` (or `https://haidertaqvee.github.io/terratwin-sos/receiver.html`)
-- **Tile Manifest:** `GET /api/tiles`
-- **Building Vector Tiles:** `GET /api/tile/{id}` or `GET /api/buildings/all`
-- **SOS Incident Registration:** `POST /api/sos`
-- **Live Active Incidents:** `GET /api/sos/active`
-- **DEM Ground Elevation:** `GET /api/dem/elevation?lat={lat}&lon={lon}`
-- **USGS Seismic Hazards:** `GET /api/hazards/earthquakes?lat={lat}&lon={lon}`
-- **Hydrological Flood Simulation:** `GET /api/hazards/flood?lat={lat}&lon={lon}`
+## 3. Strict Academic Architecture
+- `data/` (`raw/`, `interim/`, `processed/`)
+- `docs/` (`FYP_Proposal.md`, `PRETRAINED_BASELINE.md`, `THESIS_ARCHITECTURE.md`)
+- `src/` (`data_prep/`, `models/`, `geometry/`, `physics_sim/`)
+- `notebooks/` (Exploratory analysis and swarm experiments)
+- `terratwin_sos_archive/` (Isolated read-only legacy hackathon dashboards)
 
 ## 4. Coding & Architecture Guidelines
-- Preserve client-side standalone fallbacks in all web applications so that they function both with the Python backend server AND in static hosting environments (GitHub Pages / Vercel).
-- Keep relative paths (`index.html`, `sos.html`, `receiver.html`) without leading slashes to prevent subpath breakages.
-- Maintain high precision: Ground elevation calculations must use exact DEM datum offsets.
+- Preserve modularity: All data preparation logic belongs in `src/data_prep/`, model training in `src/models/`, 3D geometry in `src/geometry/`, and simulation dynamics in `src/physics_sim/`.
+- Maintain absolute separation from `terratwin_sos_archive/` — no code in `src/` should import from or depend on `terratwin_sos_archive/`.
+- Ensure high geographic precision: DEM ground elevation queries must account for datum offsets and exact geographic bounding coordinates.

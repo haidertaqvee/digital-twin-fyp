@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **TerraTwin** — automated pipeline from satellite imagery → AI segmentation → vectorized 3D → Unity. See [CONTEXT.md](CONTEXT.md) for the authoritative mission, stack, rules, and current status.
 
-- **FYP** "AI-Driven Semantic Digital Twins for Autonomous Systems Simulation" (BS Space Science, IST, Dr. Sajid Ghuffar), **and** solo submission to the **AI Builders Hackathon (Devpost)** — **deadline Sept 15, 2026 11:00 PM EDT**.
+- **FYP** "Multi-Agent Deep Reinforcement Learning for UAV Swarm Navigation in a Geospatial Digital Twin" (BS Space Science, IST, Dr. Munawar Ali Shah).
+- **Team / Authors:** Haider Taqveen (Reg. No. 230601020), Mashaf Majeed (Reg. No. 230601017).
 - **Pipeline (TerraTwin, 4 stages; the `src/stage1..5_*` folder names are historical):**
   1. `stage1_extraction` — semantic feature extraction (building segmentation from SpaceNet imagery)
   2. `stage2_enrichment` — attribute enrichment (vectorize masks → georeferenced polygons + height heuristic)

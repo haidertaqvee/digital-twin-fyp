@@ -3,8 +3,11 @@
 ## The Mission
 **TerraTwin SOS** is an automated geospatial digital twin and emergency dispatch platform that converts high-resolution satellite imagery into simulation-ready 3D environments, reverse-geocodes physical structures, simulates multi-hazard events (floods, earthquakes), and coordinates tactical search and rescue.
 
-* **Dual Purpose:** Final Year Project for BS in Space Science at Institute of Space Technology (supervised by Dr. Sajid Ghuffar) and solo student submission for the **AI Builders Hackathon** on Devpost.
+* **Dual Purpose:** Final Year Project for BS in Space Science at Institute of Space Technology (supervised by Dr. Munawar Ali Shah) and solo student submission for the **AI Builders Hackathon** on Devpost.
 * **Hard Deadline:** September 15, 2026, 11:00 PM EDT.
+* **Team & Authors:**
+  - Haider Taqveen (Reg. No. 230601020)
+  - Mashaf Majeed (Reg. No. 230601017)
 * **GitHub Repositories:**
   - Official Project: `https://github.com/haidertaqvee/terratwin-sos`
   - Academic FYP: `https://github.com/haidertaqvee/digital-twin-fyp`

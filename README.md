@@ -1,114 +1,132 @@
-# TerraTwin SOS — 3D Multi-Hazard Digital Twin Platform
+# Multi-Agent Deep Reinforcement Learning for UAV Swarm Navigation in a Geospatial Digital Twin
 
-**Automated satellite imagery pipeline → AI building footprint segmentation → vectorized 3D digital twin with generated addresses, live incident beacons, multi-hazard simulation, and tactical rescue navigation.**
-
-- **Official Repository:** [https://github.com/haidertaqvee/terratwin-sos](https://github.com/haidertaqvee/terratwin-sos)
-- **Academic FYP Repository:** [https://github.com/haidertaqvee/digital-twin-fyp](https://github.com/haidertaqvee/digital-twin-fyp)
-- **Final Year Project (FYP):** BS Space Science, Institute of Space Technology, Islamabad (Supervised by Dr. Sajid Ghuffar)
-- **Hackathon Submission:** AI Builders Hackathon (Devpost, Deadline: September 15, 2026)
-- **Target Environments:** Web / Mobile (FastAPI + MapLibre GL 3D + Three.js + PWA) & Simulation (Unity URP)
+**Department of Space Science, Institute of Space Technology (IST), Islamabad**  
+**Authors / Team:** Haider Taqveen (Reg. No. 230601020), Mashaf Majeed (Reg. No. 230601017)  
+**Supervisor:** Dr. Munawar Ali Shah  
 
 ---
 
-## ⚡ Quick Start (One Command Run)
+## 🛰️ Project Overview
 
-Launch the full multi-hazard stack (FastAPI backend + 3D Twin Explorer + Mobile SOS Beacon + Rescuer HUD):
+This repository hosts the official research codebase for the BS Space Science Final Year Project (FYP). The thesis develops an automated, end-to-end framework that converts high-resolution optical satellite imagery into geometrically faithful, simulation-ready 3D digital twins, providing the real-world operational environment for **Multi-Agent Deep Reinforcement Learning (MADRL)** autonomous UAV swarm navigation, target search, and collision avoidance.
 
-```powershell
-# Using the project conda environment
-E:\digital-twin-fyp\envs\digital-twin\python.exe src/server.py --port 8000
+### Research Workflow
+
+```
+[Raw Optical Satellite Imagery (SpaceNet 2)]
+                    │
+                    ▼
+[Stage 1: Deep Semantic Segmentation (U-Net ResNet-34)]  ──► Test IoU: 0.8062 | F1: 0.8927
+                    │
+                    ▼
+[Stage 2: Footprint Vectorization & Height Attribution] ──► Round-trip IoU: 0.994
+                    │
+                    ▼
+[Stage 3: 3D Digital Twin Obstacle & Terrain Reconstruction] ──► AWS Terrarium DEM + OBJ Meshes
+                    │
+                    ▼
+[Stage 4: Multi-Agent Deep Reinforcement Learning Simulation] ──► Cooperative Swarm Path Planning
 ```
 
-Open your browser:
-- **3D Twin Explorer (Dispatcher Map):** [http://localhost:8000/demo/index.html](http://localhost:8000/demo/index.html)
-- **Mobile SOS Beacon (Citizen PWA):** [http://localhost:8000/demo/sos.html](http://localhost:8000/demo/sos.html)
-- **Rescuer Navigation HUD:** [http://localhost:8000/demo/receiver.html](http://localhost:8000/demo/receiver.html)
-
-### Testing on a Mobile Phone (Same LAN or ngrok)
-
-1. **Find your machine's LAN IP:**
-   ```powershell
-   ipconfig | findstr IPv4
-   # Example: 192.168.1.50
-   ```
-2. **On your mobile phone browser:** Navigate to `http://192.168.1.50:8000/demo/sos.html`.
-3. Alternatively, expose via ngrok:
-   ```bash
-   ngrok http 8000
-   ```
-
 ---
 
-## 🌟 Major Capabilities & Innovations
+## 📁 Academic Repository Architecture
 
-### 1. AI Building Footprint Segmentation (`src/stage1_extraction/`)
-- Architecture: `segmentation_models_pytorch` U-Net with ImageNet-pretrained ResNet34 backbone.
-- Evaluated on a held-out test split of 146 SpaceNet tiles (never seen during training):
-  - **IoU: 0.8062** | **F1 Score: 0.8927** | **Precision: 0.9101** | **Recall: 0.8760**
-- **40× Domain Adaptation Gain:** Outperforms zero-shot WHU building baseline (0.0200 IoU) by 40× in desert urban terrain.
-
-### 2. AWS Open Data Terrarium DEM Topographic Precision
-- Real-world Digital Elevation Models (30m/10m resolution) anchored to Mean Sea Level (MSL).
-- Sub-millisecond point elevation lookups (1.07 ms) via LRU memoization.
-- Dual-regional support: Islamabad (IST Campus ~530.7m MSL) and Las Vegas (Sector 7 ~685m MSL).
-
-### 3. Interactive 3D Multi-Floor Building Slices
-- Discrete interactable floors + 18cm concrete structural slabs.
-- Dynamic 3D Floor Explosion Slider (floors float apart in mid-air).
-- Three.js Volumetric Studio with **Standard 3D**, **🔥 FLIR Thermal Heatmap**, and **📐 Architectural X-Ray Wireframe** modes.
-
-### 4. 3D Hydraulic Flood Inundation Simulator
-- Dynamic water surge slider (`0.0m` to `+10.0m`).
-- Vertical hydraulic water stage tube meter visualizer.
-- Submergence metrics and automated vertical refuge advisories.
-
-### 5. USGS Real-Time Seismic & Tectonic Fault Monitor
-- Live USGS earthquake feed (M2.5+ events) with 10-tier Modified Mercalli Intensity (MMI) shakemaps.
-- Active fault overlays (Margalla Thrust, Rawat Fault, Las Vegas Valley faults).
-- Structural shear failure advisories.
-
-### 6. Mobile Citizen SOS Beacon (`demo/sos.html`)
-- One-tap emergency broadcast with floor level and hazard type.
-- Haptic vibration feedback on buttons and transmission.
-- **Acoustic Rescue Locator Beacon:** Web Audio API high-frequency dual-tone chirp (`880Hz / 1320Hz`) pulsing every 2.2s to guide search dogs and rescue crews under debris.
-
-### 7. Tactical Rescuer HUD Navigation (`demo/receiver.html`)
-- Military corner crosshair reticles.
-- Live proximity countdown (meters + walking/vehicle ETA).
-- Interactive operational status stepper (`Target SOS` -> `En Route` -> `On Scene` -> `Evacuating`).
-
-### 8. Performance Speedup (86% Payload Savings)
-- GZipMiddleware enabled on FastAPI server.
-- In-memory GeoJSON pre-caching for sub-millisecond API responses.
-
----
-
-## 🏛️ Repository Architecture
+The repository enforces a strict academic data science hierarchy:
 
 ```
 digital-twin-fyp/
-├── demo/
-│   ├── index.html       # 3D Twin Explorer, Flood Sim, Seismic Monitor & Three.js Studio
-│   ├── sos.html         # Citizen SOS Beacon PWA with Acoustic Chirp
-│   └── receiver.html    # Tactical Rescuer Navigation HUD
+├── data/
+│   ├── raw/                      # Raw SpaceNet 2 Las Vegas imagery & geojson labels
+│   ├── interim/                  # Intermediate cached tensors & transformed rasters
+│   └── processed/                # Normalized train/val/test splits, 3D meshes & exports
+│       ├── stage3_3d/            # 3D building meshes (.obj / .mtl)
+│       ├── test/                 # Test images, masks, vectors, predictions
+│       ├── train/                # Train images, masks, labels
+│       ├── unity_export/         # Unity URP 16-bit heightmaps & landcover masks
+│       └── val/                  # Validation split
+├── docs/
+│   ├── FYP_Proposal.md           # Formal academic thesis proposal
+│   ├── PRETRAINED_BASELINE.md    # Pretrained baseline evaluation report
+│   └── THESIS_ARCHITECTURE.md    # Detailed architecture & simulation pipeline specification
+├── notebooks/                    # Jupyter notebooks for EDA and swarm experiments
+│   └── 01_dataset_exploration.ipynb
 ├── src/
-│   ├── server.py        # FastAPI high-speed backend with GZip & In-Memory Caches
-│   ├── stage1_extraction/   # PyTorch U-Net training, inference & evaluation
-│   ├── stage2_enrichment/   # Vectorization, address generation & vulnerability index
-│   └── export_unity.py      # Unity URP 16-bit heightmaps and textures
-├── models/
-│   └── unet_resnet34_best.pth  # Trained checkpoint (IoU 0.8062)
-├── DEVPOST.md           # Official Hackathon Project Submission Dossier
-├── README.md            # Comprehensive project documentation
-└── CONTEXT.md           # Authoritative project memory and technical context
+│   ├── data_prep/                # Footprint rasterization, dataset splitting & vectorization
+│   │   ├── build_masks.py
+│   │   ├── build_subset.py
+│   │   ├── dataset.py
+│   │   ├── vectorize.py
+│   │   ├── verify_alignment.py
+│   │   ├── verify_masks.py
+│   │   ├── verify_stage1.py
+│   │   └── verify_stage2.py
+│   ├── models/                   # Neural network architectures, training & evaluation
+│   │   ├── evaluate.py
+│   │   ├── inference.py
+│   │   ├── model.py
+│   │   ├── predict_pretrained.py
+│   │   ├── train.py
+│   │   └── train_unet.py
+│   ├── geometry/                 # 3D spatial geometry & digital elevation models
+│   │   ├── dem.py                # AWS Terrarium DEM elevation sampling engine
+│   │   ├── heights.py            # Geometric building height heuristic
+│   │   └── extrude_3d.py         # 3D polygon to Wavefront OBJ extrusion
+│   └── physics_sim/              # Simulation environment generation & UAV dynamics
+│       └── export_unity.py       # 16-bit terrain heightmap & landcover exporter
+├── models/                       # Checkpoints & training logs
+│   ├── unet_resnet34_best.pth    # Fine-tuned U-Net weights
+│   └── unet_resnet34_history.json
+├── results/                      # Quantitative evaluation reports and logs
+├── terratwin_sos_archive/        # Isolated legacy hackathon assets & web server
+├── run_sos_dashboards.bat        # Single-click launcher for archived SOS dashboards
+├── environment.yml
+└── requirements.txt
 ```
 
 ---
 
-## 🎓 Academic & Hackathon Metadata
+## ⚡ Quick Start
 
-- **Author:** Syed Muhammad Haider Taqvee
-- **Institution:** Institute of Space Technology (IST), Islamabad, Pakistan
-- **Degree:** BS Space Science
-- **Supervisor:** Dr. Sajid Ghuffar
-- **Submission:** AI Builders Hackathon (Devpost, September 2026)
+### 1. Environment Setup
+
+Activate the project's dedicated Conda environment:
+```powershell
+conda activate digital-twin
+# or directly invoke: .\envs\digital-twin\python.exe
+```
+
+### 2. Verify Pipeline Stages
+
+- **Verify Stage 1 Dataset Alignment & Reproducibility:**
+  ```powershell
+  python src/data_prep/verify_stage1.py --tiles 5 --tolerance 4
+  ```
+
+- **Verify Stage 2 Footprint Vectorization:**
+  ```powershell
+  python src/data_prep/verify_stage2.py --tiles 5 --source predictions
+  ```
+
+- **Run 3D Digital Twin Mesh Extrusion:**
+  ```powershell
+  python src/geometry/extrude_3d.py --tile AOI_2_Vegas_img4174
+  ```
+
+- **Export Unity URP Simulation Heightmap:**
+  ```powershell
+  python src/physics_sim/export_unity.py --tile AOI_2_Vegas_img4174
+  ```
+
+---
+
+## 🏛️ Legacy Hackathon Project (TerraTwin SOS)
+
+All assets, FastAPI backend code, client dashboards, and disaster hazard simulation engines from the AI Builders Hackathon 2026 submission have been cleanly isolated in `terratwin_sos_archive/` with zero cross-contamination.
+
+To launch and explore the legacy dashboards:
+1. Double-click **`run_sos_dashboards.bat`** in the repository root (or execute `.\run_sos_dashboards.bat` in PowerShell).
+2. The script will automatically activate the Python environment and launch:
+   - **3D Twin Explorer:** `http://localhost:8000/index.html`
+   - **Citizen SOS Beacon:** `http://localhost:8000/sos.html`
+   - **Rescuer Tactical HUD:** `http://localhost:8000/receiver.html`
