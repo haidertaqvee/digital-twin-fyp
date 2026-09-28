@@ -5,8 +5,8 @@ Generates the official Institute of Space Technology (IST) FYP Defense Proposal 
 (Form No: IST-Dean-F-23/00) in Microsoft Word (.docx), exports it to PDF via Word COM,
 and generates the corresponding Markdown documentation.
 
-Corrects all typographical errors, enhances technical rigor across all sections,
-and matches the official IST defense synopsis format with precise page budgeting.
+Uses clear, straightforward, and easily understandable language without overwhelming
+jargon, while maintaining high academic quality and professional 5-page layout budgeting.
 """
 
 import os
@@ -51,7 +51,7 @@ def set_cell_shading(cell, color_hex):
     shading_elm.set(qn('w:fill'), color_hex)
     cell._tc.get_or_add_tcPr().append(shading_elm)
 
-def set_cell_margins(cell, top=60, bottom=60, left=100, right=100):
+def set_cell_margins(cell, top=50, bottom=50, left=90, right=90):
     tcPr = cell._tc.get_or_add_tcPr()
     tcMar = OxmlElement('w:tcMar')
     for m, val in [('top', top), ('bottom', bottom), ('left', left), ('right', right)]:
@@ -95,14 +95,14 @@ def add_header_table(header, issue_date="Fall 2026"):
             run.font.bold = bold
             run.font.color.rgb = RGBColor(15, 23, 42)
             set_all_borders(cell, sz=5, color='475569')
-            set_cell_margins(cell, top=40, bottom=40, left=80, right=80)
+            set_cell_margins(cell, top=35, bottom=35, left=70, right=70)
             if c_idx == 1:
                 set_cell_shading(cell, 'F1F5F9')
 
 def build_proposal_document(output_docx_path):
     doc = docx.Document()
     
-    # Page Setup
+    # Page Setup (8.5 x 11 in, 0.7 in side margins, 0.5 in top/bottom)
     for section in doc.sections:
         section.page_width = Inches(8.5)
         section.page_height = Inches(11.0)
@@ -110,7 +110,7 @@ def build_proposal_document(output_docx_path):
         section.bottom_margin = Inches(0.5)
         section.left_margin = Inches(0.7)
         section.right_margin = Inches(0.7)
-        section.header_distance = Inches(0.3)
+        section.header_distance = Inches(0.28)
         add_header_table(section.header)
     
     # Normal Style configuration
@@ -172,7 +172,7 @@ def build_proposal_document(output_docx_path):
             run.font.size = Pt(9)
             run.font.bold = bold
             set_all_borders(cell, sz=5, color='475569')
-            set_cell_margins(cell, top=40, bottom=40, left=80, right=80)
+            set_cell_margins(cell, top=35, bottom=35, left=75, right=75)
             if bold:
                 set_cell_shading(cell, 'F8FAFC')
                 
@@ -215,7 +215,7 @@ def build_proposal_document(output_docx_path):
             run.font.size = Pt(9)
             run.font.bold = bold
             set_all_borders(cell, sz=5, color='475569')
-            set_cell_margins(cell, top=40, bottom=40, left=80, right=80)
+            set_cell_margins(cell, top=35, bottom=35, left=75, right=75)
             if bold:
                 set_cell_shading(cell, 'F8FAFC')
 
@@ -264,10 +264,10 @@ def build_proposal_document(output_docx_path):
         set_all_borders(c0, sz=5, color='475569')
         set_all_borders(c1, sz=5, color='475569')
         set_cell_shading(c0, 'F8FAFC')
-        set_cell_margins(c0, top=45, bottom=45, left=80, right=80)
-        set_cell_margins(c1, top=45, bottom=45, left=80, right=80)
+        set_cell_margins(c0, top=40, bottom=40, left=75, right=75)
+        set_cell_margins(c1, top=40, bottom=40, left=75, right=75)
 
-    # D. Project Summary (< 200 words)
+    # D. Project Summary (Easy to understand, strictly < 200 words)
     p_d_lbl = doc.add_paragraph()
     p_d_lbl.paragraph_format.space_before = Pt(5)
     p_d_lbl.paragraph_format.space_after = Pt(2)
@@ -281,24 +281,25 @@ def build_proposal_document(output_docx_path):
     c_sum = t_summary.rows[0].cells[0]
     c_sum.width = Inches(7.1)
     set_all_borders(c_sum, sz=5, color='475569')
-    set_cell_margins(c_sum, top=60, bottom=60, left=100, right=100)
+    set_cell_margins(c_sum, top=55, bottom=55, left=90, right=90)
     set_cell_shading(c_sum, 'FFFFFF')
     
     p_sum = c_sum.paragraphs[0]
     p_sum.paragraph_format.line_spacing = 1.10
     p_sum.paragraph_format.space_after = Pt(2)
+    
+    # Plain-English, straightforward summary
     summary_text = (
-        "Coordinating autonomous Unmanned Aerial Vehicle (UAV) swarms for search and rescue, disaster assessment, and tactical "
-        "surveillance in dense urban topographies presents severe trajectory and collision challenges. Physical multi-drone testing "
-        "is prohibitively expensive, safety-critical, and non-repeatable across hazardous disaster events. This project develops an "
-        "AI-enabled Geospatial Digital Twin that reconstructs simulation-ready, watertight 3D operational environments from sub-meter optical "
-        "satellite imagery (SpaceNet 2) and normalized Digital Surface Models (nDSM). "
-        "Operating within this physics-accurate twin, a Multi-Agent Deep Reinforcement Learning (MADRL) architecture—leveraging Multi-Agent PPO "
-        "(MAPPO) with Centralized Training and Decentralized Execution (CTDE)—is trained to coordinate 6-DOF autonomous UAV swarms. Drone agents "
-        "utilize simulated 32-beam LiDAR and GPS-degraded kinematic state estimation to learn cooperative area coverage, dynamic obstacle avoidance, "
-        "catenary powerline traversal, and acoustic beacon localization. Swarm performance is quantitatively benchmarked against classical 3D A* and "
-        "decentralized RRT* algorithms across mission completion time, energy efficiency, and safety margins. A real-time 3D mission control HUD provides "
-        "telemetry observation and spatial analytics for mission commanders."
+        "Drones are increasingly vital for disaster management, search and rescue, and environmental monitoring. "
+        "However, flying a team of multiple autonomous drones (a swarm) in crowded cities is challenging because drones "
+        "can easily collide with buildings, power lines, or each other. Testing real drones in physical cities is also expensive "
+        "and dangerous. This project creates a 'Geospatial Digital Twin'—a realistic 3D computer model of a real city built "
+        "directly from satellite images and ground elevation data. Inside this virtual world, we use Artificial Intelligence "
+        "(Multi-Agent Reinforcement Learning) to teach a team of drones how to fly together autonomously. The drones learn by "
+        "practice how to coordinate search patterns, avoid obstacles like buildings and overhead wires, and locate emergency "
+        "rescue sound beacons without human pilots. We evaluate swarm performance by measuring mission completion time, area coverage, "
+        "battery efficiency, and collision-free safety. Finally, an interactive 3D computer dashboard is developed so mission operators "
+        "can observe the drones and track flight telemetry in real time."
     )
     r_sum = p_sum.add_run(summary_text)
     r_sum.font.name = 'Times New Roman'
@@ -309,7 +310,7 @@ def build_proposal_document(output_docx_path):
     p_wcnt.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     p_wcnt.paragraph_format.space_before = Pt(1)
     p_wcnt.paragraph_format.space_after = Pt(0)
-    r_wcnt = p_wcnt.add_run(f"[Exact Word Count: {w_count} words | Verified strictly < 200 words]")
+    r_wcnt = p_wcnt.add_run(f"[Word Count: {w_count} words | Verified strictly < 200 words]")
     r_wcnt.font.size = Pt(8.5)
     r_wcnt.font.italic = True
     r_wcnt.font.color.rgb = RGBColor(100, 116, 139)
@@ -333,15 +334,16 @@ def build_proposal_document(output_docx_path):
     c_obj = t_obj.rows[0].cells[0]
     c_obj.width = Inches(7.1)
     set_all_borders(c_obj, sz=5, color='475569')
-    set_cell_margins(c_obj, top=70, bottom=70, left=100, right=100)
+    set_cell_margins(c_obj, top=65, bottom=65, left=90, right=90)
     
+    # Easy-to-understand objectives
     objectives = [
-        ("1. Automated 3D Digital Twin Reconstruction: ", "To develop an automated geospatial reconstruction toolchain converting high-resolution optical satellite imagery (SpaceNet 2) and DEM topographic elevations into watertight, collision-ready 3D manifold meshes with localized micro-hazards (catenary powerlines and vegetation volumes)."),
-        ("2. 6-DOF Aerodynamic Swarm Formulation: ", "To formulate and simulate 6-DOF quadrotor kinematic and aerodynamic agent models subject to rotor thrust limits, gyroscopic drag, 32-beam LiDAR emulation, and acoustic rescue beacon chirps."),
-        ("3. Multi-Agent Reinforcement Learning Engine: ", "To design and train a scalable Multi-Agent Deep Reinforcement Learning (MADRL) framework based on Multi-Agent PPO (MAPPO) with Centralized Training and Decentralized Execution (CTDE) for cooperative swarm navigation."),
-        ("4. Dynamic Disaster Scenario Emulation: ", "To simulate stochastic, high-entropy environmental conditions, including moving obstacles, catenary wire entanglements, wind shear perturbations, individual motor failures, and intermittent communication loss."),
-        ("5. Quantitative Benchmarking & Safety Evaluation: ", "To benchmark swarm flight metrics against classical centralized 3D A* and decentralized RRT* baselines across mission completion duration, area coverage rate, collision frequency, and energy consumption."),
-        ("6. Tactical Mission Control Interface: ", "To construct an interactive 3D WebGL tactical HUD and mission telemetry dashboard for real-time visualization of UAV trajectories, battery states, sensor feeds, and mission progress.")
+        ("1. Build a 3D Virtual City (Digital Twin): ", "To automatically convert high-resolution optical satellite imagery and elevation data into a realistic 3D virtual environment with accurate building shapes, terrain heights, and low-altitude hazards such as power lines."),
+        ("2. Simulate Realistic Drone Flight: ", "To simulate multiple quadcopter drones with realistic physical movement, motor thrust, battery energy limits, distance-measuring laser sensors (LiDAR), and emergency sound detectors."),
+        ("3. Train AI for Drone Teamwork: ", "To train an artificial intelligence framework (Multi-Agent Deep Reinforcement Learning) where drones learn to fly together as a cooperative team without colliding with obstacles or each other."),
+        ("4. Test Under Challenging Scenarios: ", "To test the drone swarm under difficult disaster conditions, including moving obstacles, windy weather, single-drone motor failures, and weak communication signals."),
+        ("5. Measure and Compare Performance: ", "To evaluate swarm success using clear practical metrics (search speed, area covered, battery usage, and zero crashes) and compare the AI against traditional flight navigation methods."),
+        ("6. Build a 3D Mission Control Screen: ", "To develop an interactive 3D visual dashboard where operators can see drone locations, watch live flight paths, and monitor mission progress in real time.")
     ]
     
     p_first_obj = c_obj.paragraphs[0]
@@ -370,17 +372,18 @@ def build_proposal_document(output_docx_path):
     c_meth = t_meth.rows[0].cells[0]
     c_meth.width = Inches(7.1)
     set_all_borders(c_meth, sz=5, color='475569')
-    set_cell_margins(c_meth, top=70, bottom=70, left=100, right=100)
+    set_cell_margins(c_meth, top=65, bottom=65, left=90, right=90)
     
+    # Easy-to-understand stages 1-3
     stages_p2 = [
-        ("Stage 1 — Satellite Semantic Extraction & Topography (src/data_prep/): ",
-         "The framework consumes 0.3m optical satellite imagery from SpaceNet 2 Las Vegas. A deep convolutional U-Net with ResNet-34 backbone is fine-tuned to extract building footprints (test IoU 0.8062, F1 0.8927). Building masks are vectorized into georeferenced polygons in WGS84 (EPSG:4326). Ground elevations are queried from AWS Terrarium DEM tiles using sub-millisecond bilinear interpolation, while normalized Digital Surface Models (nDSM) and solar shadow trigonometry validate structural building heights."),
+        ("Stage 1 — Satellite Image Processing & Terrain Mapping (src/data_prep/): ",
+         "We take high-resolution satellite imagery from SpaceNet 2 and train an AI computer-vision model (U-Net) to detect and trace rooftop outlines. These outlines are turned into digital map shapes tagged with real GPS coordinates. Next, we use ground elevation maps (DEM) and calculate building heights from satellite shadows so each building sits accurately on the ground at its true real-world height."),
         
-        ("Stage 2 — 3D Digital Twin Mesh Manifolding & Micro-Hazards (src/geometry/): ",
-         "Extracted polygon cadastre footprints are converted into watertight, manifold 3D polygon meshes via automated Blender Python (bpy) extrusion and polygon triangulation. Critical micro-hazards are procedurally modeled into the airspace: catenary powerlines using hyperbolic cosine equations (y = a · [cosh(x/a) - 1]) between transmission poles, and vegetation canopy exclusion zones using SAVI vegetation masks."),
+        ("Stage 2 — Creating the 3D Virtual City & Hazards (src/geometry/): ",
+         "Using 3D modeling tools (Blender and Python scripts), we extrude the flat 2D building outlines into solid 3D structures. We ensure the 3D models are 'watertight'—meaning they have clean, solid walls with no gaps so simulated drones cannot accidentally fly through them. We also place common low-altitude flight hazards into the air, including curved overhead electrical power lines and tall trees."),
          
-        ("Stage 3 — Real-Time Physics Simulator & 6-DOF UAV Kinematics (src/physics_sim/): ",
-         "The reconstructed geospatial environment is imported into a real-time simulation engine (Unreal Engine 5 Chaos Physics / lightweight headless 3D simulation). Heterogeneous quadrotor agents are modeled under full 6-DOF rigid-body kinematics (rotor thrust, aerodynamic drag, gravitational torque, and battery energy discharge). Each UAV is instrumented with an emulated 32-beam spherical LiDAR rangefinder and an omnidirectional acoustic receiver detecting emergency chirps.")
+        ("Stage 3 — Realistic Drone Flight Physics & Sensors (src/physics_sim/): ",
+         "We place quadcopter drones into the virtual 3D city using a physics simulation engine (Unreal Engine 5). The drones obey natural physics, including motor lift, air resistance, gravity, and battery discharge. Each drone is fitted with virtual distance sensors (32-beam laser LiDAR) that scan 360 degrees around the drone to detect walls, and an audio sensor that listens for emergency rescue chirps.")
     ]
     
     p_first_m = c_meth.paragraphs[0]
@@ -415,14 +418,15 @@ def build_proposal_document(output_docx_path):
     c_meth2 = t_meth2.rows[0].cells[0]
     c_meth2.width = Inches(7.1)
     set_all_borders(c_meth2, sz=5, color='475569')
-    set_cell_margins(c_meth2, top=70, bottom=70, left=100, right=100)
+    set_cell_margins(c_meth2, top=65, bottom=65, left=90, right=90)
     
+    # Easy-to-understand stages 4-5
     stages_p3 = [
-        ("Stage 4 — Multi-Agent Deep Reinforcement Learning Swarm Engine (src/models/): ",
-         "Autonomous swarm coordination is governed by Multi-Agent Proximal Policy Optimization (MAPPO) with Centralized Training and Decentralized Execution (CTDE). During training, a centralized value network observes the global spatial state of the digital twin; during execution, decentralized actor networks generate continuous rotor velocity commands based strictly on local 32-beam LiDAR range vectors and inter-agent relative telemetry. A Pareto multi-objective reward function optimizes mission completion, formation cohesion, and collision avoidance."),
+        ("Stage 4 — Teaching the Drones with AI (src/models/): ",
+         "We train the drone swarm using Multi-Agent Reinforcement Learning (MAPPO). In this approach, drones learn by trial and error: they get positive points for searching new areas and reaching targets, and heavy negative penalty points for crashing into walls or other drones. During training, a central computer monitors the entire area to guide learning. Once trained, each drone makes its own independent flight decisions using only its onboard sensors and short-range radio signals."),
          
-        ("Stage 5 — Benchmarking & Tactical Mission HUD: ",
-         "The converged MAPPO swarm policy is benchmarked against centralized 3D A* and decentralized RRT* algorithms under dynamic scenarios (moving obstacles, catenary powerlines, motor dropouts, and communication packet loss). An interactive WebGL 3D Mission Control HUD renders real-time UAV trajectories, telemetry cards, and quantitative safety reports.")
+        ("Stage 5 — Comparison Testing & 3D Visual Interface: ",
+         "We test the trained AI drone swarm against standard textbook pathfinding methods (such as A* and RRT* algorithms) to demonstrate that our AI flies smoother, safer, and completes missions faster. Finally, we display the live drone flights on an interactive 3D web dashboard so operators can easily observe drone positions, battery levels, and mission progress.")
     ]
     p_first_m2 = c_meth2.paragraphs[0]
     for idx, (title, desc) in enumerate(stages_p3):
@@ -451,16 +455,16 @@ def build_proposal_document(output_docx_path):
     m_widths = [Inches(0.6), Inches(1.5), Inches(2.3), Inches(2.7)]
     m_headers = [("S.No.", True), ("Elapsed Time & Dates", True), ("Milestone", True), ("Key Deliverables", True)]
     m_rows = [
-        [("1.", False), ("Month 1\n(Sep 2026)", False), ("Literature Review, System Requirements & Mathematical Modeling", True),
-         ("Comprehensive literature review, 6-DOF kinematic formulations, and system architecture specification document.", False)],
-        [("2.", False), ("Months 2–3\n(Oct–Nov 2026)", False), ("Satellite Extraction Pipeline & 3D Geospatial Digital Twin", True),
-         ("Trained U-Net footprint segmentation model, vectorized building cadastre, nDSM height model, and automated watertight 3D mesh generator.", False)],
-        [("3.", False), ("Months 4–5\n(Dec 2026–Jan 2027)", False), ("Physics-Based Multi-UAV Simulation & MAPPO RL Training", True),
-         ("Multi-agent simulation engine with 32-beam LiDAR emulation, converged MAPPO policy weights, and acoustic beacon search behavior.", False)],
-        [("4.", False), ("Months 6–7\n(Feb–Mar 2027)", False), ("Dynamic Scenario Stress-Testing & Algorithmic Benchmarking", True),
-         ("Empirical test results across moving obstacles, wire entanglements, and UAV failures; quantitative comparisons vs 3D A* and RRT*.", False)],
-        [("5.", False), ("Month 8\n(Apr–May 2027)", False), ("Tactical HUD Integration, Final Demonstration & Thesis Defense", True),
-         ("Interactive 3D WebGL mission control interface, complete software repository, finalized BS Space Science thesis dissertation, and oral defense.", False)]
+        [("1.", False), ("Month 1\n(Sep 2026)", False), ("Literature Review & System Design", True),
+         ("Summary of existing research papers, drone flight equations, and overall system design plan.", False)],
+        [("2.", False), ("Months 2–3\n(Oct–Nov 2026)", False), ("Satellite Image Processing & 3D Virtual City", True),
+         ("Trained building detection AI, digitized building map, height model, and completed 3D virtual city.", False)],
+        [("3.", False), ("Months 4–5\n(Dec 2026–Jan 2027)", False), ("Drone Simulation & AI Swarm Training", True),
+         ("Flight physics simulation with sensor rangefinders and a trained AI model for multi-drone coordination.", False)],
+        [("4.", False), ("Months 6–7\n(Feb–Mar 2027)", False), ("Challenging Scenario Testing & Performance Study", True),
+         ("Experimental flight tests under wind, obstacle, and failure conditions; comparison against standard methods.", False)],
+        [("5.", False), ("Month 8\n(Apr–May 2027)", False), ("3D Visual Dashboard & Final Thesis Defense", True),
+         ("Live 3D mission control dashboard, complete software codebase, final thesis report, and presentation defense.", False)]
     ]
     
     for c_idx, (text, bold) in enumerate(m_headers):
@@ -476,7 +480,7 @@ def build_proposal_document(output_docx_path):
         run.font.size = Pt(9.5)
         set_all_borders(cell, sz=6, color='333333')
         set_cell_shading(cell, 'E2E8F0')
-        set_cell_margins(cell, top=60, bottom=60, left=80, right=80)
+        set_cell_margins(cell, top=55, bottom=55, left=75, right=75)
         
     for r_idx, r_data in enumerate(m_rows):
         for c_idx, (text, bold) in enumerate(r_data):
@@ -493,7 +497,7 @@ def build_proposal_document(output_docx_path):
             run.font.size = Pt(9)
             run.font.bold = bold
             set_all_borders(cell, sz=5, color='475569')
-            set_cell_margins(cell, top=50, bottom=50, left=80, right=80)
+            set_cell_margins(cell, top=45, bottom=45, left=75, right=75)
             if r_idx % 2 == 1:
                 set_cell_shading(cell, 'F8FAFC')
 
@@ -516,13 +520,13 @@ def build_proposal_document(output_docx_path):
     c_deliv = t_deliv.rows[0].cells[0]
     c_deliv.width = Inches(7.1)
     set_all_borders(c_deliv, sz=5, color='475569')
-    set_cell_margins(c_deliv, top=60, bottom=60, left=100, right=100)
+    set_cell_margins(c_deliv, top=55, bottom=55, left=90, right=90)
     
     deliv_items = [
-        ("1. End-to-End Software System: ", "Fully automated software toolchain for satellite building extraction, 3D mesh manifold reconstruction, and multi-agent flight simulation."),
-        ("2. Autonomous Swarm Policy Checkpoints: ", "Converged PyTorch neural network checkpoints implementing decentralized cooperative navigation and hazard avoidance."),
-        ("3. Quantitative Simulation & Comparative Study: ", "Comprehensive comparative benchmarking dataset validating swarm flight performance against 3D A* and decentralized RRT*."),
-        ("4. High-Fidelity Simulator & Tactical HUD: ", "3D simulation environment and interactive WebGL Mission Control HUD for real-time mission telemetry and spatial analytics.")
+        ("1. Complete Simulation Software: ", "A software program that converts satellite imagery into 3D city models and simulates multi-drone flight."),
+        ("2. Trained AI Flight Models: ", "Saved artificial intelligence models that allow multiple drones to fly autonomously as a coordinated team."),
+        ("3. Comparative Performance Report: ", "A structured experimental study comparing our AI drone swarm against standard flight path methods."),
+        ("4. Interactive 3D Visual Dashboard: ", "A user-friendly 3D web screen showing real-time drone locations, flight paths, and mission statistics.")
     ]
     p_first_d = c_deliv.paragraphs[0]
     for idx, (title, desc) in enumerate(deliv_items):
@@ -550,18 +554,18 @@ def build_proposal_document(output_docx_path):
     c_tech = t_tech.rows[0].cells[0]
     c_tech.width = Inches(7.1)
     set_all_borders(c_tech, sz=5, color='475569')
-    set_cell_margins(c_tech, top=60, bottom=60, left=100, right=100)
+    set_cell_margins(c_tech, top=55, bottom=55, left=90, right=90)
     
     tech_items = [
-        ("1. Virtual Geospatial Environment: ", "Cadastre-grade 3D environment generated from SpaceNet 2 satellite tiles, georeferenced in WGS84 (EPSG:4326), featuring accurate building geometries, terrain topography, and restricted flight volumes."),
-        ("2. Digital Twin State Engine: ", "Real-time spatial state manager synchronizing environmental changes, multi-agent position histories, and dynamic threat boundaries."),
-        ("3. Multi-UAV Simulation Module: ", "Physics-based kinematic engine simulating heterogeneous quadrotor agents under 6-DOF rigid-body dynamics, aerodynamic rotor drag, and battery discharge curves."),
-        ("4. AI Swarm-Control Module: ", "MAPPO multi-agent reinforcement learning architecture utilizing Centralized Training with Decentralized Execution (CTDE) for collision-free cooperative navigation."),
-        ("5. Dynamic Scenario Generator: ", "Simulation module injecting moving obstacles, localized wind gusts, catenary wire obstacles, and UAV communication packet dropouts."),
-        ("6. Mission Management Module: ", "Mission coordinator managing search patterns, acoustic rescue beacon homing, formation tracking, and automated return-to-base protocols."),
-        ("7. Performance Evaluation Module: ", "Automated logging engine tracking mission completion duration, area coverage rate, collision frequency, and energy consumption (Wh)."),
-        ("8. Tactical Visualization Interface: ", "Interactive 3D WebGL HUD rendering swarm trajectories, drone health telemetries, and operational status cycling."),
-        ("9. Experimental Benchmark Suite: ", "Standardized evaluation framework executing head-to-head performance comparisons against centralized 3D A* and decentralized RRT* algorithms.")
+        ("1. Virtual 3D City Environment: ", "Accurate 3D city map created from satellite photos with realistic building shapes, ground elevation, and no-fly zones."),
+        ("2. Digital Twin State Manager: ", "Software module that continuously tracks building changes, weather, and real-time drone coordinates."),
+        ("3. Multi-Drone Flight Simulator: ", "Physics-based flight engine that simulates quadcopter movement, motor lift, drag, and battery drain."),
+        ("4. AI Swarm Controller: ", "Multi-agent reinforcement learning algorithm (MAPPO) that controls individual drone speed, direction, and team spacing."),
+        ("5. Dynamic Hazard Module: ", "Scenario tool that adds moving obstacles, wind gusts, thin overhead power lines, and drone motor dropouts."),
+        ("6. Mission Planning Module: ", "Sets search-and-rescue mission goals, distributes search zones among drones, and manages return-to-base."),
+        ("7. Automatic Evaluation Module: ", "Automatically logs flight duration, search area covered, battery consumed, and safety metrics."),
+        ("8. 3D Visual Control Dashboard: ", "Interactive web screen displaying 3D flight paths, individual drone status cards, and live mission progress."),
+        ("9. Standard Comparison Test Suite: ", "Test suite comparing our AI drone swarm against standard textbook algorithms (like A* and RRT*).")
     ]
     p_first_t = c_tech.paragraphs[0]
     for idx, (title, desc) in enumerate(tech_items):
@@ -589,14 +593,14 @@ def build_proposal_document(output_docx_path):
     c_equip = t_equip.rows[0].cells[0]
     c_equip.width = Inches(7.1)
     set_all_borders(c_equip, sz=5, color='475569')
-    set_cell_margins(c_equip, top=60, bottom=60, left=100, right=100)
+    set_cell_margins(c_equip, top=55, bottom=55, left=90, right=90)
     
     equip_items = [
-        ("1. Development Workstation: ", "Standard research workstation or laptop equipped with a multi-core processor (Intel Core i7/i9 or AMD Ryzen) and 16+ GB RAM."),
-        ("2. GPU Compute Capability: ", "Dedicated NVIDIA GPU (GeForce RTX/GTX series, CUDA 12.x compatible) for accelerated deep neural network training and real-time 3D simulation physics."),
-        ("3. GIS & Simulation Software Toolchain: ", "Python 3.10+ virtual environment, PyTorch deep learning framework, GDAL/Rasterio/GeoPandas geospatial libraries, Blender 4.x (bpy), and Unreal Engine 5.4."),
-        ("4. Earth Observation Datasets & Connectivity: ", "High-speed internet connectivity for streaming AWS Terrarium DEM tiles and SpaceNet 2 satellite imagery."),
-        ("5. Hardware-in-the-Loop Demonstration (Optional): ", "An optional physical quadrotor or Pixhawk flight controller telemetry link may be incorporated for ground station telemetry playback if laboratory hardware is made available.")
+        ("1. Standard Computer / Laptop: ", "A development laptop or desktop computer with a multi-core processor and 16 GB of RAM."),
+        ("2. Graphics Card (NVIDIA GPU): ", "Dedicated NVIDIA graphics card (GeForce RTX/GTX series) to run AI training and smooth 3D simulation."),
+        ("3. Free & Open-Source Software: ", "Python, PyTorch (AI library), GIS mapping tools, Blender, and Unreal Engine simulation tools."),
+        ("4. Public Datasets & Internet: ", "Internet access to download free public satellite imagery (SpaceNet 2) and ground elevation data."),
+        ("5. Physical Drone Demonstration (Optional): ", "If laboratory drone hardware is available, real flight telemetry can be connected to the simulation for demonstration.")
     ]
     p_first_eq = c_equip.paragraphs[0]
     for idx, (title, desc) in enumerate(equip_items):
@@ -630,16 +634,16 @@ def build_proposal_document(output_docx_path):
     c_ben = t_ben.rows[0].cells[0]
     c_ben.width = Inches(7.1)
     set_all_borders(c_ben, sz=5, color='475569')
-    set_cell_margins(c_ben, top=60, bottom=60, left=100, right=100)
+    set_cell_margins(c_ben, top=55, bottom=55, left=90, right=90)
     
     benefits = [
-        ("1. Risk-Free, Low-Cost Swarm Development: ", "Enables rapid prototyping and verification of multi-UAV swarm control policies without incurring drone crash costs or flight-safety hazards."),
-        ("2. Scientific Repeatability: ", "Provides a deterministic, repeatable operational environment for rigorous scientific comparison across disparate multi-agent algorithms under identical environmental states."),
-        ("3. Robustness in High-Entropy & GPS-Degraded Environments: ", "Enables evaluation of swarm adaptability under communication outages, moving obstacles, micro-hazards (catenary powerlines), and individual agent motor failures."),
-        ("4. Direct Fusion of Space Science & Autonomous Robotics: ", "Demonstrates seamless integration of satellite remote sensing, photogrammetric DEMs, and GIS spatial analytics directly into autonomous robotic navigation pipelines."),
-        ("5. Search and Rescue (SAR) & Disaster Assessment: ", "Directly applicable to post-disaster reconnaissance (earthquake structural collapse, flood assessment, acoustic survivor locator homing)."),
-        ("6. Quantitative Multi-Objective Benchmarking: ", "Establishes empirical baselines comparing cooperative reinforcement learning against classical centralized 3D A* and decentralized RRT* algorithms."),
-        ("7. Foundation for Physical Hardware-in-the-Loop (HIL): ", "Establishes standard MAVLink telemetry and control interfaces readily transferable to physical multi-UAV platforms in future research.")
+        ("1. Zero Risk and Low Cost: ", "Allows developing and testing drone swarm coordination safely on a computer without risking expensive drone crashes or physical injuries."),
+        ("2. Repeatable Testing: ", "Allows running the exact same disaster mission dozens of times under controlled conditions to systematically test and improve the AI."),
+        ("3. Prepares Drones for Real Hazards: ", "Trains drones to safely handle unexpected emergencies like sudden wind gusts, moving obstacles, thin overhead power lines, and motor failures."),
+        ("4. Connects Satellite Data with Robotics: ", "Demonstrates a practical way to use Space Science satellite photos and elevation maps directly in autonomous drone navigation."),
+        ("5. Useful for Disaster Relief & Search and Rescue: ", "Helps search-and-rescue teams locate survivors, map earthquake damage, or assess flooded areas quickly."),
+        ("6. Saves Flight Time and Battery: ", "Teaches drones to pick efficient flight paths, helping them complete missions faster and extend battery life."),
+        ("7. Foundation for Future IST Projects: ", "Creates a reusable 3D simulation platform that future students and faculty at IST can use for subsequent drone and AI research.")
     ]
     p_first_b = c_ben.paragraphs[0]
     for idx, (title, desc) in enumerate(benefits):
@@ -656,7 +660,7 @@ def build_proposal_document(output_docx_path):
 
     # Certification & Undertaking Section
     p_cert = doc.add_paragraph()
-    p_cert.paragraph_format.space_before = Pt(10)
+    p_cert.paragraph_format.space_before = Pt(8)
     p_cert.paragraph_format.space_after = Pt(3)
     p_cert.paragraph_format.line_spacing = 1.10
     
@@ -684,7 +688,7 @@ def build_proposal_document(output_docx_path):
     
     p_cert3 = doc.add_paragraph()
     p_cert3.paragraph_format.space_before = Pt(2)
-    p_cert3.paragraph_format.space_after = Pt(10)
+    p_cert3.paragraph_format.space_after = Pt(8)
     p_cert3.paragraph_format.line_spacing = 1.10
     cert_text3 = (
         "It is further undertaken that after utilization of funds, the said “Fund Utilization Report” shall be furnished along with the other "
@@ -712,14 +716,14 @@ def build_proposal_document(output_docx_path):
     r_s0.font.size = Pt(9.5)
     
     p_s0_val = c_s0.add_paragraph()
-    p_s0_val.paragraph_format.space_before = Pt(6)
+    p_s0_val.paragraph_format.space_before = Pt(5)
     p_s0_val.paragraph_format.space_after = Pt(2)
     p_s0_val.paragraph_format.line_spacing = 1.05
     r_s0_val = p_s0_val.add_run("Dr. Munawar Ali Shah\nAssistant Professor, Department of Space Science\nInstitute of Space Technology, Islamabad")
     r_s0_val.font.size = Pt(9)
     
     p_s0_sig = c_s0.add_paragraph()
-    p_s0_sig.paragraph_format.space_before = Pt(20)
+    p_s0_sig.paragraph_format.space_before = Pt(18)
     p_s0_sig.paragraph_format.space_after = Pt(2)
     r_s0_sig = p_s0_sig.add_run("Signature: ______________________  Date: ________")
     r_s0_sig.font.size = Pt(9)
@@ -733,14 +737,14 @@ def build_proposal_document(output_docx_path):
     r_s1.font.size = Pt(9.5)
     
     p_s1_val = c_s1.add_paragraph()
-    p_s1_val.paragraph_format.space_before = Pt(6)
+    p_s1_val.paragraph_format.space_before = Pt(5)
     p_s1_val.paragraph_format.space_after = Pt(2)
     p_s1_val.paragraph_format.line_spacing = 1.05
     r_s1_val = p_s1_val.add_run("Head of Department\nDepartment of Space Science\nInstitute of Space Technology, Islamabad")
     r_s1_val.font.size = Pt(9)
     
     p_s1_sig = c_s1.add_paragraph()
-    p_s1_sig.paragraph_format.space_before = Pt(20)
+    p_s1_sig.paragraph_format.space_before = Pt(18)
     p_s1_sig.paragraph_format.space_after = Pt(2)
     r_s1_sig = p_s1_sig.add_run("Signature: ______________________  Date: ________")
     r_s1_sig.font.size = Pt(9)
@@ -748,13 +752,13 @@ def build_proposal_document(output_docx_path):
     for row in t_sig.rows:
         for cell in row.cells:
             set_all_borders(cell, sz=5, color='475569')
-            set_cell_margins(cell, top=70, bottom=70, left=90, right=90)
+            set_cell_margins(cell, top=60, bottom=60, left=80, right=80)
             set_cell_shading(cell, 'F8FAFC')
     
     # Save DOCX
     os.makedirs(os.path.dirname(output_docx_path), exist_ok=True)
     doc.save(output_docx_path)
-    print(f"SUCCESS: Generated DOCX at {output_docx_path}")
+    print(f"SUCCESS: Generated simplified DOCX at {output_docx_path}")
 
 def convert_docx_to_pdf(docx_path, pdf_path):
     """Uses Word COM automation to export pristine PDF."""
@@ -768,7 +772,7 @@ def convert_docx_to_pdf(docx_path, pdf_path):
         doc = word.Documents.Open(abs_docx)
         doc.SaveAs(abs_pdf, FileFormat=17) # 17 = wdFormatPDF
         doc.Close(False)
-        print(f"SUCCESS: Exported PDF at {pdf_path}")
+        print(f"SUCCESS: Exported simplified PDF at {pdf_path}")
     finally:
         word.Quit()
 
